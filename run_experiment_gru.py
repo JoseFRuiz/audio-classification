@@ -71,7 +71,7 @@ def extract_wav2vec_embeddings(audio_path):
 # ========================
 # 4. Load Dataset & Extract Features
 # ========================
-csv_path = "tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
+csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
 df = pd.read_csv(csv_path)
 clip_ids = df["clip_id"].values
 labels = df.iloc[:, 2:-1].values
