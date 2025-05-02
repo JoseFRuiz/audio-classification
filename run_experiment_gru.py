@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torchaudio
+import librosa
 import numpy as np
 import pandas as pd
 import os
@@ -47,11 +47,8 @@ os.makedirs(args.save_dir, exist_ok=True)
 # 3. Audio Preprocessing
 # ========================
 def preprocess_audio(audio_path):
-    waveform, sample_rate = torchaudio.load(audio_path)
-    if sample_rate != SAMPLE_RATE:
-        resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=SAMPLE_RATE)
-        waveform = resampler(waveform)
-    waveform = waveform.squeeze()
+    waveform, sample_rate = librosa.load(audio_path, sr=SAMPLE_RATE)
+    waveform = torch.from_numpy(waveform).float()
     if waveform.shape[-1] > TARGET_LENGTH:
         waveform = waveform[:TARGET_LENGTH]
     elif waveform.shape[-1] < TARGET_LENGTH:
@@ -72,11 +69,18 @@ def extract_wav2vec_embeddings(audio_path):
 # 4. Load Dataset & Extract Features
 # ========================
 csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
+print(f"🔹 Loading CSV from: {csv_path}")
+if not os.path.exists(csv_path):
+    raise FileNotFoundError(f"CSV file not found at: {csv_path}")
+    
 df = pd.read_csv(csv_path)
 clip_ids = df["clip_id"].values
 labels = df.iloc[:, 2:-1].values
 AUDIO_DIR = "../tmp/fsd50k/FSD50K.dev_audio"
 print(f"🔹 Audio directory: {AUDIO_DIR}")
+if not os.path.exists(AUDIO_DIR):
+    raise FileNotFoundError(f"Audio directory not found at: {AUDIO_DIR}")
+    
 print(f"🔹 Number of clips in CSV: {len(clip_ids)}")
 
 # ========================
@@ -193,6 +197,7 @@ else:
     valid_labels = []
     processed_count = 0
     error_count = 0
+    missing_files = []
     
     for clip_id, label in tqdm(zip(clip_ids, labels), total=len(clip_ids)):
         audio_path = os.path.join(AUDIO_DIR, f"{clip_id}.wav")
@@ -206,11 +211,12 @@ else:
                 print(f"Warning: Error processing {clip_id}: {str(e)}")
                 error_count += 1
         else:
-            print(f"Warning: Audio file not found: {audio_path}")
+            missing_files.append(clip_id)
             error_count += 1
 
     print(f"🔹 Processed {processed_count} files successfully")
     print(f"🔹 Encountered {error_count} errors")
+    print(f"🔹 Missing files: {len(missing_files)}")
     
     if processed_count == 0:
         raise ValueError("No audio files were successfully processed. Please check the audio directory path and file permissions.")
