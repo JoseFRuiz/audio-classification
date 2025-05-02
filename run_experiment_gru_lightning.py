@@ -1,3 +1,5 @@
+# python run_experiment_gru_lightning.py --save_dir "gru_002" --epochs 1000 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu
+
 import os
 import argparse
 import numpy as np
@@ -13,6 +15,7 @@ from transformers import Wav2Vec2Processor, Wav2Vec2Model
 import librosa
 from tqdm import tqdm
 from pytorch_lightning.loggers import CSVLogger
+import json
 
 # ========================
 # 1. Parse Input Arguments
@@ -49,6 +52,9 @@ TARGET_LENGTH = 10 * 16000
 SAMPLE_RATE = 16000
 
 os.makedirs(args.save_dir, exist_ok=True)
+# Save args to JSON for reproducibility
+with open(os.path.join(args.save_dir, "args.json"), "w") as f:
+    json.dump(vars(args), f, indent=2)
 
 # ========================
 # 4. Audio Preprocessing
