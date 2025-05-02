@@ -8,14 +8,9 @@ conda create -n audio-classification python=3.8
 conda activate audio-classification
 ```
 
-2. Install PyTorch and torchaudio (with CUDA support if you have a GPU):
+2. Install dependencies:
 ```bash
-conda install pytorch torchaudio cudatoolkit -c pytorch
-```
-
-3. Install other dependencies:
-```bash
-pip install transformers pandas numpy scikit-learn tqdm
+pip install -r requirements.txt
 ```
 
 ## Running Experiments
