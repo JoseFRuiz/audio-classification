@@ -3,3 +3,6 @@
 
 # Notebooks cache
 .ipynb_checkpoints
+
+# Python
+.npy
