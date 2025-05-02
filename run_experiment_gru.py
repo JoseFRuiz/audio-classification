@@ -75,7 +75,9 @@ csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
 df = pd.read_csv(csv_path)
 clip_ids = df["clip_id"].values
 labels = df.iloc[:, 2:-1].values
-AUDIO_DIR = "tmp/fsd50k/FSD50K.dev_audio"
+AUDIO_DIR = "../tmp/fsd50k/FSD50K.dev_audio"
+print(f"🔹 Audio directory: {AUDIO_DIR}")
+print(f"🔹 Number of clips in CSV: {len(clip_ids)}")
 
 # ========================
 # 5. Define RNN Classifier
