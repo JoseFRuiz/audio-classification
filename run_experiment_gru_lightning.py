@@ -1,26 +1,28 @@
-# python run_experiment_gru.py --save_dir "gru_001" --epochs 1000 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu
-
+import os
+import argparse
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import librosa
-import numpy as np
-import pandas as pd
-import os
-import argparse
+import pytorch_lightning as pl
+from torch.utils.data import DataLoader, TensorDataset, random_split
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from torchmetrics.classification import MultilabelF1Score, MultilabelAveragePrecision, MultilabelAUROC
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import average_precision_score, f1_score, roc_auc_score
-from torch.utils.data import DataLoader, TensorDataset
+import librosa
 from tqdm import tqdm
+from pytorch_lightning.loggers import CSVLogger
 
 # ========================
 # 1. Parse Input Arguments
 # ========================
-parser = argparse.ArgumentParser(description="Train an audio classification model with Wav2Vec2 embeddings and RNN.")
+parser = argparse.ArgumentParser(description="Train an audio classification model with Wav2Vec2 embeddings and RNN (Lightning).")
 parser.add_argument("--epochs", type=int, default=1000, help="Number of training epochs")
 parser.add_argument("--eval_interval", type=int, default=100, help="Interval for evaluating the model")
 parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay for regularization")
+parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate")
 parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
 parser.add_argument("--save_dir", type=str, default="results", help="Directory to save the model and metrics")
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
@@ -28,17 +30,20 @@ parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available
 parser.add_argument("--embedding_dir", type=str, default=".", help="Directory to load/save embeddings")
 args = parser.parse_args()
 
+# ========================
+# 2. Device
+# ========================
 device = torch.device("cuda" if torch.cuda.is_available() and args.use_gpu else "cpu")
 print(f"\n🔹 Using device: {device}\n")
 
 # ========================
-# 2. Load Wav2Vec 2.0 Model
+# 3. Load Wav2Vec 2.0 Model
 # ========================
 MODEL_NAME = "facebook/wav2vec2-base-960h"
 processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
-model = Wav2Vec2Model.from_pretrained(MODEL_NAME)
-model.eval()
-model.to(device)
+wav2vec_model = Wav2Vec2Model.from_pretrained(MODEL_NAME)
+wav2vec_model.eval()
+wav2vec_model.to(device)
 
 TARGET_LENGTH = 10 * 16000
 SAMPLE_RATE = 16000
@@ -46,7 +51,7 @@ SAMPLE_RATE = 16000
 os.makedirs(args.save_dir, exist_ok=True)
 
 # ========================
-# 3. Audio Preprocessing
+# 4. Audio Preprocessing
 # ========================
 def preprocess_audio(audio_path):
     waveform, sample_rate = librosa.load(audio_path, sr=SAMPLE_RATE)
@@ -62,19 +67,19 @@ def extract_wav2vec_embeddings(audio_path):
     waveform = preprocess_audio(audio_path)
     input_values = processor(waveform.numpy(), return_tensors="pt", sampling_rate=SAMPLE_RATE).input_values.to(device)
     with torch.no_grad():
-        outputs = model(input_values)
+        outputs = wav2vec_model(input_values)
         embeddings = outputs.last_hidden_state.squeeze(0)  # Shape: (time_steps, 768)
     chunks = [embeddings[i * (embeddings.shape[0] // 10):(i + 1) * (embeddings.shape[0] // 10)].mean(dim=0) for i in range(10)]
     return torch.stack(chunks).cpu().numpy()  # Shape: (10, 768)
 
 # ========================
-# 4. Load Dataset & Extract Features
+# 5. Load Dataset & Extract Features
 # ========================
 csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
 print(f"🔹 Loading CSV from: {csv_path}")
 if not os.path.exists(csv_path):
     raise FileNotFoundError(f"CSV file not found at: {csv_path}")
-    
+
 df = pd.read_csv(csv_path)
 clip_ids = df["clip_id"].values
 labels = df.iloc[:, 2:-1].values
@@ -82,106 +87,9 @@ AUDIO_DIR = "../tmp/fsd50k/FSD50K.dev_audio"
 print(f"🔹 Audio directory: {AUDIO_DIR}")
 if not os.path.exists(AUDIO_DIR):
     raise FileNotFoundError(f"Audio directory not found at: {AUDIO_DIR}")
-    
+
 print(f"🔹 Number of clips in CSV: {len(clip_ids)}")
 
-# ========================
-# 5. Define RNN Classifier
-# ========================
-class RNNClassifier(nn.Module):
-    def __init__(self, input_dim=768, hidden_dim=256, num_layers=1, num_classes=200):
-        super(RNNClassifier, self).__init__()
-        self.gru = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True)
-        self.fc = nn.Sequential(
-            nn.Linear(hidden_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, num_classes),
-            nn.Sigmoid()
-        )
-        self.apply(self._init_weights)
-
-    def forward(self, x):
-        _, h_n = self.gru(x)
-        h_n = h_n[-1]  # Last hidden state
-        return self.fc(h_n)
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight)
-            if m.bias is not None:
-                nn.init.zeros_(m.bias)
-
-# ============================
-# 6. Evaluation Helper Function
-# ============================
-def evaluate_model(model, X_test, y_test):
-    model.eval()
-    with torch.no_grad():
-        preds = model(X_test.to(device)).cpu().numpy()
-    y_test_np = y_test.cpu().numpy()
-    valid_classes = np.where(y_test_np.sum(axis=0) > 0)[0]
-    if len(valid_classes) == 0:
-        return {"mAP": None, "F1": None, "ROC-AUC": None}
-    return {
-        "mAP": average_precision_score(y_test_np[:, valid_classes], preds[:, valid_classes], average="macro"),
-        "F1": f1_score(y_test_np, preds > 0.5, average="macro", zero_division=1),
-        "ROC-AUC": roc_auc_score(y_test_np[:, valid_classes], preds[:, valid_classes], average="macro")
-    }
-
-# ==========================
-# 7. Training Function
-# ==========================
-def train_classifier(X_train, y_train, X_test, y_test, epochs, lr, batch_size, eval_interval, save_dir, pretrained_model=None):
-    model = RNNClassifier(input_dim=X_train.shape[2], num_classes=y_train.shape[1]).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    start_epoch = 0
-    if pretrained_model and os.path.exists(pretrained_model):
-        print(f"🔹 Loading pretrained model from {pretrained_model}")
-        checkpoint = torch.load(pretrained_model, map_location=device)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch']
-    loss_fn = nn.BCELoss()
-    loader = DataLoader(TensorDataset(X_train, y_train), batch_size=batch_size, shuffle=True)
-    eval_results = []
-    for epoch in range(start_epoch, epochs):
-        model.train()
-        epoch_loss = 0.0
-        for X_batch, y_batch in loader:
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-            optimizer.zero_grad()
-            preds = model(X_batch)
-            loss = loss_fn(preds, y_batch)
-            loss.backward()
-            optimizer.step()
-            epoch_loss += loss.item()
-        avg_train_loss = epoch_loss / len(loader)
-        if (epoch + 1) % eval_interval == 0:
-            with torch.no_grad():
-                preds_test = model(X_test.to(device))
-                test_loss = loss_fn(preds_test, y_test.to(device)).item()
-            results = evaluate_model(model, X_test, y_test)
-            eval_results.append({
-                "Epoch": epoch + 1,
-                "Training Loss": avg_train_loss,
-                "Test Loss": test_loss,
-                "mAP": results["mAP"],
-                "F1": results["F1"],
-                "ROC-AUC": results["ROC-AUC"]
-            })
-            print(f"🔹 Evaluation Results (Epoch {epoch+1}): {eval_results[-1]}")
-            df_metrics = pd.DataFrame(eval_results)
-            df_metrics.to_csv(os.path.join(save_dir, "training_metrics.csv"), index=False)
-            torch.save({
-                'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict()
-            }, os.path.join(save_dir, "last_model.pth"))
-    return model
-
-# ==========================
-# 8. Feature Extraction and Training
-# ==========================
 embedding_dir = args.embedding_dir
 embedding_path = os.path.join(embedding_dir, "embeddings.npy")
 label_path = os.path.join(embedding_dir, "labels.npy")
@@ -200,7 +108,6 @@ else:
     processed_count = 0
     error_count = 0
     missing_files = []
-    
     for clip_id, label in tqdm(zip(clip_ids, labels), total=len(clip_ids)):
         audio_path = os.path.join(AUDIO_DIR, f"{clip_id}.wav")
         if os.path.exists(audio_path):
@@ -215,40 +122,115 @@ else:
         else:
             missing_files.append(clip_id)
             error_count += 1
-
     print(f"🔹 Processed {processed_count} files successfully")
     print(f"🔹 Encountered {error_count} errors")
     print(f"🔹 Missing files: {len(missing_files)}")
-    
     if processed_count == 0:
         raise ValueError("No audio files were successfully processed. Please check the audio directory path and file permissions.")
-    
     embeddings = np.array(embeddings)
     labels = np.array(valid_labels)
     print(f"🔹 Extracted embeddings shape: {embeddings.shape}")
     print(f"🔹 Extracted labels shape: {labels.shape}")
-    
     os.makedirs(embedding_dir, exist_ok=True)
     np.save(embedding_path, embeddings)
     np.save(label_path, labels)
     print("🔹 Saved embeddings and labels for future runs.")
 
-print("🔹 Splitting dataset into train/test sets...")
+# ========================
+# 6. Split Dataset
+# ========================
+from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=0.5, random_state=42)
 X_train = torch.tensor(X_train, dtype=torch.float32)
 y_train = torch.tensor(y_train, dtype=torch.float32)
 X_test = torch.tensor(X_test, dtype=torch.float32)
 y_test = torch.tensor(y_test, dtype=torch.float32)
 
-print("🔹 Starting training...")
-supervised_model = train_classifier(
-    X_train, y_train, X_test, y_test,
-    epochs=args.epochs,
+train_dataset = TensorDataset(X_train, y_train)
+val_dataset = TensorDataset(X_test, y_test)
+train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=args.batch_size)
+
+# ========================
+# 7. Lightning Model
+# ========================
+class LitRNNClassifier(pl.LightningModule):
+    def __init__(self, input_dim, hidden_dim, num_layers, num_classes, lr, weight_decay, dropout):
+        super().__init__()
+        self.save_hyperparameters()
+        self.gru = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout)
+        self.fc = nn.Sequential(
+            nn.Linear(hidden_dim, 128),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(128, num_classes),
+            nn.Sigmoid()
+        )
+        self.loss_fn = nn.BCELoss()
+        self.f1 = MultilabelF1Score(num_labels=num_classes, average="macro")
+        self.map = MultilabelAveragePrecision(num_labels=num_classes, average="macro")
+        self.auc = MultilabelAUROC(num_labels=num_classes, average="macro")
+
+    def forward(self, x):
+        _, h_n = self.gru(x)
+        h_n = h_n[-1]
+        return self.fc(h_n)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        preds = self(x)
+        loss = self.loss_fn(preds, y)
+        self.log('train_loss', loss, on_step=False, on_epoch=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        preds = self(x)
+        loss = self.loss_fn(preds, y)
+        self.log('val_loss', loss, on_step=False, on_epoch=True)
+        self.log('val_f1', self.f1(preds, y.int()), on_step=False, on_epoch=True)
+        self.log('val_map', self.map(preds, y.int()), on_step=False, on_epoch=True)
+        self.log('val_auc', self.auc(preds, y.int()), on_step=False, on_epoch=True)
+        return loss
+
+    def configure_optimizers(self):
+        return optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)
+
+# ========================
+# 8. Training
+# ========================
+model = LitRNNClassifier(
+    input_dim=X_train.shape[2],
+    hidden_dim=256,
+    num_layers=1,
+    num_classes=y_train.shape[1],
     lr=args.lr,
-    batch_size=args.batch_size,
-    eval_interval=args.eval_interval,
-    save_dir=args.save_dir,
-    pretrained_model=args.pretrained_model
+    weight_decay=args.weight_decay,
+    dropout=args.dropout
 )
 
-print("✅ Training complete!")
+checkpoint_callback = ModelCheckpoint(
+    monitor='val_loss',
+    dirpath=args.save_dir,
+    filename='best-checkpoint',
+    save_top_k=1,
+    mode='min'
+)
+early_stop_callback = EarlyStopping(
+    monitor='val_loss',
+    patience=10,
+    verbose=True,
+    mode='min'
+)
+
+csv_logger = CSVLogger(save_dir=args.save_dir, name="metrics")
+trainer = pl.Trainer(
+    max_epochs=args.epochs,
+    callbacks=[checkpoint_callback, early_stop_callback],
+    accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
+    default_root_dir=args.save_dir,
+    logger=csv_logger
+)
+
+trainer.fit(model, train_loader, val_loader)
+print("✅ Training complete!") 
