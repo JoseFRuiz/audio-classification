@@ -1,8 +1,29 @@
-# PyTorch
-.pt
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
 
-# Notebooks cache
-.ipynb_checkpoints
+# Virtual environments
+env/
+venv/
+.venv/
 
-# Python
-.npy
+# PyTorch model weights
+*.pt
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Large data arrays & model files
+*.npy
+*.npz
+*.h5
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# OS or editor cruft
+.DS_Store
+Thumbs.db
