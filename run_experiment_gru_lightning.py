@@ -235,7 +235,8 @@ trainer = pl.Trainer(
     callbacks=[checkpoint_callback, early_stop_callback],
     accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
     default_root_dir=args.save_dir,
-    logger=csv_logger
+    logger=csv_logger,
+    check_val_every_n_epoch=args.eval_interval
 )
 
 trainer.fit(model, train_loader, val_loader)
