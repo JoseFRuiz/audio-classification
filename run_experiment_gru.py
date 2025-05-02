@@ -180,14 +180,20 @@ embedding_dir = args.embedding_dir
 embedding_path = os.path.join(embedding_dir, "embeddings.npy")
 label_path = os.path.join(embedding_dir, "labels.npy")
 
+print(f"🔹 Checking for precomputed embeddings in: {embedding_dir}")
 if os.path.exists(embedding_path) and os.path.exists(label_path):
     print("🔹 Loading precomputed embeddings...")
     embeddings = np.load(embedding_path)
     labels = np.load(label_path)
+    print(f"🔹 Loaded embeddings shape: {embeddings.shape}")
+    print(f"🔹 Loaded labels shape: {labels.shape}")
 else:
-    print("🔹 Extracting Wav2Vec2 embeddings for all clips...")
+    print("🔹 No precomputed embeddings found. Starting extraction...")
     embeddings = []
     valid_labels = []
+    processed_count = 0
+    error_count = 0
+    
     for clip_id, label in tqdm(zip(clip_ids, labels), total=len(clip_ids)):
         audio_path = os.path.join(AUDIO_DIR, f"{clip_id}.wav")
         if os.path.exists(audio_path):
@@ -195,11 +201,25 @@ else:
                 emb = extract_wav2vec_embeddings(audio_path)
                 embeddings.append(emb)
                 valid_labels.append(label)
+                processed_count += 1
             except Exception as e:
-                print(f"Warning: Skipped {clip_id} due to error: {e}")
+                print(f"Warning: Error processing {clip_id}: {str(e)}")
+                error_count += 1
+        else:
+            print(f"Warning: Audio file not found: {audio_path}")
+            error_count += 1
 
+    print(f"🔹 Processed {processed_count} files successfully")
+    print(f"🔹 Encountered {error_count} errors")
+    
+    if processed_count == 0:
+        raise ValueError("No audio files were successfully processed. Please check the audio directory path and file permissions.")
+    
     embeddings = np.array(embeddings)
     labels = np.array(valid_labels)
+    print(f"🔹 Extracted embeddings shape: {embeddings.shape}")
+    print(f"🔹 Extracted labels shape: {labels.shape}")
+    
     os.makedirs(embedding_dir, exist_ok=True)
     np.save(embedding_path, embeddings)
     np.save(label_path, labels)
