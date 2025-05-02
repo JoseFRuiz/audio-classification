@@ -9,3 +9,6 @@ scikit-learn>=1.2.0
 tqdm>=4.65.0
 soundfile>=0.12.1
 librosa>=0.10.0
+matplotlib>=3.7.0
+pytorch-lightning>=2.0.0
+torchmetrics>=1.1.0
