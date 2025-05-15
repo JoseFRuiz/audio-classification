@@ -75,8 +75,11 @@ def extract_wav2vec_embeddings(audio_path):
     with torch.no_grad():
         outputs = wav2vec_model(input_values)
         embeddings = outputs.last_hidden_state.squeeze(0)  # Shape: (time_steps, 768)
-    chunks = [embeddings[i * (embeddings.shape[0] // 10):(i + 1) * (embeddings.shape[0] // 10)].mean(dim=0) for i in range(10)]
-    return torch.stack(chunks).cpu().numpy()  # Shape: (10, 768)
+    
+    # We should not use the mean of the embeddings, but the whole sequence.
+    # chunks = [embeddings[i * (embeddings.shape[0] // 10):(i + 1) * (embeddings.shape[0] // 10)].mean(dim=0) for i in range(10)]
+    # return torch.stack(chunks).cpu().numpy()  # Shape: (10, 768)
+    return embeddings.cpu().numpy()  # Shape: (time_steps, 768)
 
 # ========================
 # 5. Load Dataset & Extract Features
