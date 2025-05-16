@@ -1,5 +1,6 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_002" --epochs 100 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu
 # python run_experiment_gru_lightning.py --save_dir "gru_003" --epochs 100 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu
+# python run_experiment_gru_lightning.py --save_dir "gru_004" --epochs 1000 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1
 
 import os
 import argparse
@@ -27,6 +28,7 @@ parser.add_argument("--eval_interval", type=int, default=100, help="Interval for
 parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
 parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay for regularization")
 parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate")
+parser.add_argument("--test_size", type=float, default=0.1, help="Test size")
 parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
 parser.add_argument("--save_dir", type=str, default="results", help="Directory to save the model and metrics")
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
@@ -150,7 +152,7 @@ else:
 # 6. Split Dataset
 # ========================
 from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=0.5, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=args.test_size, random_state=42)
 X_train = torch.tensor(X_train, dtype=torch.float32)
 y_train = torch.tensor(y_train, dtype=torch.float32)
 X_test = torch.tensor(X_test, dtype=torch.float32)
@@ -242,6 +244,17 @@ trainer = pl.Trainer(
     logger=csv_logger,
     check_val_every_n_epoch=args.eval_interval
 )
+
+# Load pretrained model if specified
+if args.pretrained_model is not None:
+    print(f"🔹 Loading pretrained model from {args.pretrained_model}")
+    # Find the best checkpoint in the pretrained model directory
+    checkpoint_dir = os.path.join(args.pretrained_model, "best-checkpoint.ckpt")
+    if os.path.exists(checkpoint_dir):
+        model = LitRNNClassifier.load_from_checkpoint(checkpoint_dir)
+        print("✅ Successfully loaded pretrained model")
+    else:
+        print(f"⚠️ Warning: No checkpoint found at {checkpoint_dir}")
 
 trainer.fit(model, train_loader, val_loader)
 print("✅ Training complete!") 
