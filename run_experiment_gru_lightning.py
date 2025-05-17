@@ -1,6 +1,7 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_002" --epochs 100 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu
 # python run_experiment_gru_lightning.py --save_dir "gru_003" --epochs 100 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu
 # python run_experiment_gru_lightning.py --save_dir "gru_004" --epochs 1000 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1
+# python run_experiment_gru_lightning.py --save_dir "gru_005" --epochs 100 --eval_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1
 
 import os
 import argparse
@@ -11,13 +12,59 @@ import torch.nn as nn
 import torch.optim as optim
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, TensorDataset, random_split
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from torchmetrics.classification import MultilabelF1Score, MultilabelAveragePrecision, MultilabelAUROC
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
 import librosa
 from tqdm import tqdm
 from pytorch_lightning.loggers import CSVLogger
 import json
+
+class TrainEvalMetricsCallback(Callback):
+    def __init__(self, train_loader):
+        super().__init__()
+        self.train_loader = train_loader
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        pl_module.eval()
+        device = pl_module.device
+        loss_fn = pl_module.loss_fn
+        f1 = pl_module.f1
+        map_metric = pl_module.map
+        auc = pl_module.auc
+
+        all_preds = []
+        all_targets = []
+        total_loss = 0.0
+        total_samples = 0
+
+        with torch.no_grad():
+            for x, y in self.train_loader:
+                x, y = x.to(device), y.to(device)
+                preds = pl_module(x)
+                loss = loss_fn(preds, y)
+                total_loss += loss.item() * x.size(0)
+                all_preds.append(preds.cpu())
+                all_targets.append(y.cpu())
+                total_samples += x.size(0)
+
+        all_preds = torch.cat(all_preds)
+        all_targets = torch.cat(all_targets)
+        avg_loss = total_loss / total_samples
+
+        train_f1 = f1(all_preds, all_targets.int()).item()
+        train_map = map_metric(all_preds, all_targets.int()).item()
+        train_auc = auc(all_preds, all_targets.int()).item()
+
+        # Log metrics
+        trainer.logger.log_metrics({
+            "train_loss_eval": avg_loss,
+            "train_f1_eval": train_f1,
+            "train_map_eval": train_map,
+            "train_auc_eval": train_auc
+        }, step=trainer.global_step)
+
+        pl_module.train()  # Switch back to training mode
 
 # ========================
 # 1. Parse Input Arguments
@@ -236,9 +283,10 @@ early_stop_callback = EarlyStopping(
 )
 
 csv_logger = CSVLogger(save_dir=args.save_dir, name="metrics")
+train_eval_callback = TrainEvalMetricsCallback(train_loader)
 trainer = pl.Trainer(
     max_epochs=args.epochs,
-    callbacks=[checkpoint_callback, early_stop_callback],
+    callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback],
     accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
     default_root_dir=args.save_dir,
     logger=csv_logger,
