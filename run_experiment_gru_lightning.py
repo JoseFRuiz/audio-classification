@@ -29,9 +29,9 @@ class TrainEvalMetricsCallback(Callback):
         pl_module.eval()
         device = pl_module.device
         loss_fn = pl_module.loss_fn
-        f1 = pl_module.f1
-        map_metric = pl_module.map
-        auc = pl_module.auc
+        f1 = pl_module.f1.to(device)
+        map_metric = pl_module.map.to(device)
+        auc = pl_module.auc.to(device)
 
         all_preds = []
         all_targets = []
@@ -44,8 +44,8 @@ class TrainEvalMetricsCallback(Callback):
                 preds = pl_module(x)
                 loss = loss_fn(preds, y)
                 total_loss += loss.item() * x.size(0)
-                all_preds.append(preds.cpu())
-                all_targets.append(y.cpu())
+                all_preds.append(preds)
+                all_targets.append(y)
                 total_samples += x.size(0)
 
         all_preds = torch.cat(all_preds)
