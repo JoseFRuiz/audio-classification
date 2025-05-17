@@ -1,0 +1,13 @@
+{
+  "epochs": 100,
+  "eval_interval": 10,
+  "lr": 0.001,
+  "weight_decay": 0.0001,
+  "dropout": 0.1,
+  "test_size": 0.1,
+  "batch_size": 100,
+  "save_dir": "gru_005",
+  "pretrained_model": null,
+  "use_gpu": true,
+  "embedding_dir": "."
+}
