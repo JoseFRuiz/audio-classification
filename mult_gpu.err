@@ -31,10 +31,8 @@ SLURM auto-requeueing enabled. Setting signal handlers.
 /home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: No positive samples in targets, true positive value should be meaningless. Returning zero tensor in true positive score
   warnings.warn(*args, **kwargs)  # noqa: B028
 Metric val_loss improved. New best score: 0.050
-Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.049
+Metric val_loss improved by 0.002 >= min_delta = 0.0. New best score: 0.048
 Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.048
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.048
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.048
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.048
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
 `Trainer.fit` stopped: `max_epochs=100` reached.
