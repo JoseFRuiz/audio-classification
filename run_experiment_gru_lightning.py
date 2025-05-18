@@ -56,13 +56,15 @@ class TrainEvalMetricsCallback(Callback):
         train_map = map_metric(all_preds, all_targets.int()).item()
         train_auc = auc(all_preds, all_targets.int()).item()
 
-        # Log metrics
+        # Log metrics with current epoch
+        current_epoch = trainer.current_epoch
         trainer.logger.log_metrics({
+            "epoch": current_epoch,
             "train_loss_eval": avg_loss,
             "train_f1_eval": train_f1,
             "train_map_eval": train_map,
             "train_auc_eval": train_auc
-        }, step=trainer.global_step)
+        }, step=current_epoch)
 
         pl_module.train()  # Switch back to training mode
 
