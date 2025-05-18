@@ -30,52 +30,11 @@ SLURM auto-requeueing enabled. Setting signal handlers.
   warnings.warn(*args, **kwargs)  # noqa: B028
 /home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: No positive samples in targets, true positive value should be meaningless. Returning zero tensor in true positive score
   warnings.warn(*args, **kwargs)  # noqa: B028
-Traceback (most recent call last):
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/metric.py", line 483, in wrapped_func
-    update(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/classification/stat_scores.py", line 496, in update
-    self._update_state(tp, fp, tn, fn)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/classification/stat_scores.py", line 77, in _update_state
-    self.tp += tp
-RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "run_experiment_gru_lightning.py", line 307, in <module>
-    trainer.fit(model, train_loader, val_loader)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
-    call._call_and_handle_interrupt(
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
-    return trainer_fn(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
-    self._run(model, ckpt_path=ckpt_path)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
-    results = self._run_stage()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 1023, in _run_stage
-    self._run_sanity_check()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 1052, in _run_sanity_check
-    val_loop.run()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
-    return loop_run(self, *args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 142, in run
-    return self.on_run_end()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 254, in on_run_end
-    self._on_evaluation_epoch_end()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 333, in _on_evaluation_epoch_end
-    call._call_callback_hooks(trainer, hook_name)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 218, in _call_callback_hooks
-    fn(trainer, trainer.lightning_module, *args, **kwargs)
-  File "run_experiment_gru_lightning.py", line 55, in on_validation_epoch_end
-    train_f1 = f1(all_preds, all_targets.int()).item()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/metric.py", line 312, in forward
-    self._forward_cache = self._forward_reduce_state_update(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/metric.py", line 381, in _forward_reduce_state_update
-    self.update(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/metric.py", line 486, in wrapped_func
-    raise RuntimeError(
-RuntimeError: Encountered different devices in metric calculation (see stacktrace for details). This could be due to the metric class not being on the same device as input. Instead of `metric=MultilabelF1Score(...)` try to do `metric=MultilabelF1Score(...).to(device)` where device corresponds to the device of the input.
+Metric val_loss improved. New best score: 0.050
+Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.049
+Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.048
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.048
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.048
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.048
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
+`Trainer.fit` stopped: `max_epochs=100` reached.
