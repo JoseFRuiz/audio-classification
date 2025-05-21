@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=gputest
+#SBATCH --job-name=audio-classification
 #SBATCH --output=multi_gpu.out
 #SBATCH --error=mult_gpu.err
 #SBATCH --mail-type=ALL
