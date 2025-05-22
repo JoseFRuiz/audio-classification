@@ -36,3 +36,21 @@ Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.049
 Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.049
 Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.048
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.045
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.045
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.045
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.045
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.045
+Monitored metric val_loss did not improve in the last 10 records. Best score: 0.045. Signaling Trainer to stop.
