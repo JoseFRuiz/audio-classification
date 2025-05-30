@@ -5,6 +5,7 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_006" --epochs 1000 --eval_interval 100 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --pretrained_model "gru_005"
 # python run_experiment_gru_lightning.py --save_dir "gru_007" --epochs 1000 --eval_interval 10 --lr 1e-4 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1
 # python run_experiment_gru_lightning.py --save_dir "gru_008" --epochs 10000 --eval_interval 100 --lr 1e-4 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --pretrained_model "gru_007"
+# python run_experiment_gru_lightning.py --save_dir "gru_009" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1
 
 import os
 import argparse
@@ -14,7 +15,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader, TensorDataset, random_split
+from torch.utils.data import DataLoader, TensorDataset, Dataset, random_split
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from torchmetrics.classification import MultilabelF1Score, MultilabelAveragePrecision, MultilabelAUROC
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
@@ -22,6 +23,68 @@ import librosa
 from tqdm import tqdm
 from pytorch_lightning.loggers import CSVLogger
 import json
+from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH
+import multiprocessing
+
+class EmbeddingDataset(Dataset):
+    def __init__(self, embedding_dir, clip_ids, labels, is_train=True, test_size=0.1, random_state=42):
+        self.embedding_dir = embedding_dir
+        self.is_train = is_train
+        
+        print(f"🔹 Looking for embedding files in: {os.path.abspath(embedding_dir)}")
+        
+        # Filter clip_ids to only include those with embedding files
+        valid_indices = []
+        valid_clip_ids = []
+        valid_labels = []
+        
+        for idx, (clip_id, label) in enumerate(zip(clip_ids, labels)):
+            embedding_path = os.path.join(embedding_dir, f"{clip_id}.npy")
+            if os.path.exists(embedding_path):
+                valid_indices.append(idx)
+                valid_clip_ids.append(clip_id)
+                valid_labels.append(label)
+        
+        if len(valid_clip_ids) == 0:
+            raise ValueError(f"No embedding files found in {os.path.abspath(embedding_dir)}. "
+                           f"Please check if the embedding files exist and are named correctly "
+                           f"(should be named like 'clip_id.npy').")
+        
+        self.clip_ids = np.array(valid_clip_ids)
+        self.labels = np.array(valid_labels)
+        
+        # Create train/test split indices
+        indices = np.arange(len(self.clip_ids))
+        np.random.seed(random_state)
+        np.random.shuffle(indices)
+        split_idx = int(len(indices) * (1 - test_size))
+        
+        if is_train:
+            self.indices = indices[:split_idx]
+        else:
+            self.indices = indices[split_idx:]
+        
+        print(f"🔹 {'Training' if is_train else 'Validation'} dataset size: {len(self.indices)}")
+        if len(self.indices) == 0:
+            raise ValueError(f"Empty {'training' if is_train else 'validation'} dataset. "
+                           f"This might be due to an incorrect test_size parameter.")
+    
+    def __len__(self):
+        return len(self.indices)
+    
+    def __getitem__(self, idx):
+        clip_idx = self.indices[idx]
+        clip_id = self.clip_ids[clip_idx]
+        label = self.labels[clip_idx]
+        
+        # Load embedding from file
+        embedding_path = os.path.join(self.embedding_dir, f"{clip_id}.npy")
+        if not os.path.exists(embedding_path):
+            raise FileNotFoundError(f"Embedding file not found: {embedding_path}")
+        
+        embedding = np.load(embedding_path)
+        
+        return torch.tensor(embedding, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
 class TrainEvalMetricsCallback(Callback):
     def __init__(self, train_loader):
@@ -29,6 +92,7 @@ class TrainEvalMetricsCallback(Callback):
         self.train_loader = train_loader
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        # Only compute train metrics on validation epochs
         pl_module.eval()
         device = pl_module.device
         loss_fn = pl_module.loss_fn
@@ -77,11 +141,13 @@ class TrainEvalMetricsCallback(Callback):
 parser = argparse.ArgumentParser(description="Train an audio classification model with Wav2Vec2 embeddings and RNN (Lightning).")
 parser.add_argument("--epochs", type=int, default=1000, help="Number of training epochs")
 parser.add_argument("--eval_interval", type=int, default=100, help="Interval for evaluating the model")
+parser.add_argument("--log_interval", type=int, default=100, help="Interval for logging metrics")
 parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
 parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay for regularization")
 parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate")
 parser.add_argument("--test_size", type=float, default=0.1, help="Test size")
 parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
+parser.add_argument("--num_workers", type=int, default=1, help="Number of workers for data loading")
 parser.add_argument("--save_dir", type=str, default="results", help="Directory to save the model and metrics")
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
 parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available")
@@ -112,31 +178,6 @@ with open(os.path.join(args.save_dir, "args.json"), "w") as f:
     json.dump(vars(args), f, indent=2)
 
 # ========================
-# 4. Audio Preprocessing
-# ========================
-def preprocess_audio(audio_path):
-    waveform, sample_rate = librosa.load(audio_path, sr=SAMPLE_RATE)
-    waveform = torch.from_numpy(waveform).float()
-    if waveform.shape[-1] > TARGET_LENGTH:
-        waveform = waveform[:TARGET_LENGTH]
-    elif waveform.shape[-1] < TARGET_LENGTH:
-        padding = torch.zeros(TARGET_LENGTH - waveform.shape[-1])
-        waveform = torch.cat((waveform, padding))
-    return waveform
-
-def extract_wav2vec_embeddings(audio_path):
-    waveform = preprocess_audio(audio_path)
-    input_values = processor(waveform.numpy(), return_tensors="pt", sampling_rate=SAMPLE_RATE).input_values.to(device)
-    with torch.no_grad():
-        outputs = wav2vec_model(input_values)
-        embeddings = outputs.last_hidden_state.squeeze(0)  # Shape: (time_steps, 768)
-    
-    # We should not use the mean of the embeddings, but the whole sequence.
-    # chunks = [embeddings[i * (embeddings.shape[0] // 10):(i + 1) * (embeddings.shape[0] // 10)].mean(dim=0) for i in range(10)]
-    # return torch.stack(chunks).cpu().numpy()  # Shape: (10, 768)
-    return embeddings.cpu().numpy()  # Shape: (time_steps, 768)
-
-# ========================
 # 5. Load Dataset & Extract Features
 # ========================
 csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
@@ -155,65 +196,89 @@ if not os.path.exists(AUDIO_DIR):
 print(f"🔹 Number of clips in CSV: {len(clip_ids)}")
 
 embedding_dir = args.embedding_dir
-embedding_path = os.path.join(embedding_dir, "embeddings.npy")
-label_path = os.path.join(embedding_dir, "labels.npy")
+# Create a subdirectory for embeddings
+embeddings_subdir = os.path.join(embedding_dir, "embeddings")
+os.makedirs(embeddings_subdir, exist_ok=True)
 
-print(f"🔹 Checking for precomputed embeddings in: {embedding_dir}")
-if os.path.exists(embedding_path) and os.path.exists(label_path):
-    print("🔹 Loading precomputed embeddings...")
-    embeddings = np.load(embedding_path)
-    labels = np.load(label_path)
-    print(f"🔹 Loaded embeddings shape: {embeddings.shape}")
-    print(f"🔹 Loaded labels shape: {labels.shape}")
+print(f"🔹 Checking for precomputed embeddings in: {embeddings_subdir}")
+if os.path.exists(os.path.join(embedding_dir, "metadata.json")):
+    print("🔹 Loading precomputed embeddings metadata...")
+    with open(os.path.join(embedding_dir, "metadata.json"), "r") as f:
+        metadata = json.load(f)
+    print(f"🔹 Found {metadata['total_samples']} precomputed embeddings")
 else:
     print("🔹 No precomputed embeddings found. Starting extraction...")
-    embeddings = []
-    valid_labels = []
     processed_count = 0
     error_count = 0
     missing_files = []
+    
+    # Create embedding directory
+    os.makedirs(embeddings_subdir, exist_ok=True)
+    
     for clip_id, label in tqdm(zip(clip_ids, labels), total=len(clip_ids)):
         audio_path = os.path.join(AUDIO_DIR, f"{clip_id}.wav")
         if os.path.exists(audio_path):
             try:
-                emb = extract_wav2vec_embeddings(audio_path)
-                embeddings.append(emb)
-                valid_labels.append(label)
+                emb = extract_wav2vec_embeddings(audio_path, processor, wav2vec_model, device)
+                # Save individual embedding in the subdirectory
+                embedding_path = os.path.join(embeddings_subdir, f"{clip_id}.npy")
+                np.save(embedding_path, emb)
                 processed_count += 1
+                if processed_count % 100 == 0:
+                    print(f"🔹 Processed {processed_count} files")
             except Exception as e:
                 print(f"Warning: Error processing {clip_id}: {str(e)}")
                 error_count += 1
         else:
             missing_files.append(clip_id)
             error_count += 1
+    
     print(f"🔹 Processed {processed_count} files successfully")
     print(f"🔹 Encountered {error_count} errors")
     print(f"🔹 Missing files: {len(missing_files)}")
+    
     if processed_count == 0:
         raise ValueError("No audio files were successfully processed. Please check the audio directory path and file permissions.")
-    embeddings = np.array(embeddings)
-    labels = np.array(valid_labels)
-    print(f"🔹 Extracted embeddings shape: {embeddings.shape}")
-    print(f"🔹 Extracted labels shape: {labels.shape}")
-    os.makedirs(embedding_dir, exist_ok=True)
-    np.save(embedding_path, embeddings)
-    np.save(label_path, labels)
-    print("🔹 Saved embeddings and labels for future runs.")
+    
+    # Save metadata
+    metadata = {
+        "total_samples": processed_count,
+        "embedding_shape": emb.shape,
+        "label_shape": labels.shape[1:]
+    }
+    with open(os.path.join(embedding_dir, "metadata.json"), "w") as f:
+        json.dump(metadata, f, indent=2)
+    
+    print("🔹 Saved embeddings and metadata for future runs.")
 
-# ========================
-# 6. Split Dataset
-# ========================
-from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=args.test_size, random_state=42)
-X_train = torch.tensor(X_train, dtype=torch.float32)
-y_train = torch.tensor(y_train, dtype=torch.float32)
-X_test = torch.tensor(X_test, dtype=torch.float32)
-y_test = torch.tensor(y_test, dtype=torch.float32)
+# Create datasets
+try:
+    train_dataset = EmbeddingDataset(embeddings_subdir, clip_ids, labels, is_train=True, test_size=args.test_size)
+    val_dataset = EmbeddingDataset(embeddings_subdir, clip_ids, labels, is_train=False, test_size=args.test_size)
+except Exception as e:
+    print(f"❌ Error creating datasets: {str(e)}")
+    print("\nPossible solutions:")
+    print("1. Check if the embedding files exist in the correct directory")
+    print("2. Make sure the embedding files are named correctly (clip_id.npy)")
+    print("3. Verify that the test_size parameter is appropriate")
+    raise
 
-train_dataset = TensorDataset(X_train, y_train)
-val_dataset = TensorDataset(X_test, y_test)
-train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=args.batch_size)
+# Create dataloaders
+train_loader = DataLoader(
+    train_dataset, 
+    batch_size=args.batch_size, 
+    shuffle=True,
+    num_workers=args.num_workers,
+    pin_memory=True,
+    persistent_workers=True if args.num_workers > 0 else False
+)
+val_loader = DataLoader(
+    val_dataset, 
+    batch_size=args.batch_size,
+    num_workers=args.num_workers,
+    pin_memory=True,
+    persistent_workers=True if args.num_workers > 0 else False
+)
 
 # ========================
 # 7. Lightning Model
@@ -234,6 +299,7 @@ class LitRNNClassifier(pl.LightningModule):
         self.f1 = MultilabelF1Score(num_labels=num_classes, average="macro")
         self.map = MultilabelAveragePrecision(num_labels=num_classes, average="macro")
         self.auc = MultilabelAUROC(num_labels=num_classes, average="macro")
+        self.training_step_outputs = []
 
     def forward(self, x):
         _, h_n = self.gru(x)
@@ -244,17 +310,30 @@ class LitRNNClassifier(pl.LightningModule):
         x, y = batch
         preds = self(x)
         loss = self.loss_fn(preds, y)
-        self.log('train_loss', loss, on_step=False, on_epoch=True)
+        self.training_step_outputs.append(loss.item())
+        
+        # Log based on the log_interval parameter
+        if batch_idx % self.trainer.log_every_n_steps == 0:
+            self.log('train_loss', loss, on_step=True, on_epoch=False, prog_bar=True)
         return loss
+
+    def on_train_epoch_end(self):
+        # Log average training loss for the epoch
+        avg_loss = sum(self.training_step_outputs) / len(self.training_step_outputs)
+        self.log('train_loss_epoch', avg_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.training_step_outputs.clear()
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         preds = self(x)
         loss = self.loss_fn(preds, y)
-        self.log('val_loss', loss, on_step=False, on_epoch=True)
-        self.log('val_f1', self.f1(preds, y.int()), on_step=False, on_epoch=True)
-        self.log('val_map', self.map(preds, y.int()), on_step=False, on_epoch=True)
-        self.log('val_auc', self.auc(preds, y.int()), on_step=False, on_epoch=True)
+        
+        # Only compute metrics on the first batch to save memory
+        if batch_idx == 0:
+            self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log('val_f1', self.f1(preds, y.int()), on_step=False, on_epoch=True)
+            self.log('val_map', self.map(preds, y.int()), on_step=False, on_epoch=True)
+            self.log('val_auc', self.auc(preds, y.int()), on_step=False, on_epoch=True)
         return loss
 
     def configure_optimizers(self):
@@ -264,10 +343,10 @@ class LitRNNClassifier(pl.LightningModule):
 # 8. Training
 # ========================
 model = LitRNNClassifier(
-    input_dim=X_train.shape[2],
+    input_dim=train_dataset[0][0].shape[0],
     hidden_dim=256,
     num_layers=1,
-    num_classes=y_train.shape[1],
+    num_classes=train_dataset[0][1].shape[0],
     lr=args.lr,
     weight_decay=args.weight_decay,
     dropout=args.dropout
@@ -287,7 +366,13 @@ early_stop_callback = EarlyStopping(
     mode='min'
 )
 
-csv_logger = CSVLogger(save_dir=args.save_dir, name="metrics")
+# Configure CSV logger with reduced logging frequency
+csv_logger = CSVLogger(
+    save_dir=args.save_dir,
+    name="metrics",
+    version=None,  # Don't create new version directories
+    flush_logs_every_n_steps=args.log_interval  # Use log_interval parameter
+)
 train_eval_callback = TrainEvalMetricsCallback(train_loader)
 trainer = pl.Trainer(
     max_epochs=args.epochs,
@@ -295,19 +380,24 @@ trainer = pl.Trainer(
     accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
     default_root_dir=args.save_dir,
     logger=csv_logger,
-    check_val_every_n_epoch=args.eval_interval
+    check_val_every_n_epoch=args.eval_interval,
+    log_every_n_steps=args.log_interval  # Use log_interval parameter
 )
 
-# Load pretrained model if specified
-if args.pretrained_model is not None:
-    print(f"🔹 Loading pretrained model from {args.pretrained_model}")
-    # Find the best checkpoint in the pretrained model directory
-    checkpoint_dir = os.path.join(args.pretrained_model, "best-checkpoint.ckpt")
-    if os.path.exists(checkpoint_dir):
-        model = LitRNNClassifier.load_from_checkpoint(checkpoint_dir)
-        print("✅ Successfully loaded pretrained model")
-    else:
-        print(f"⚠️ Warning: No checkpoint found at {checkpoint_dir}")
+if __name__ == '__main__':
+    # Set multiprocessing start method
+    multiprocessing.set_start_method('spawn', force=True)
+    
+    # Load pretrained model if specified
+    if args.pretrained_model is not None:
+        print(f"🔹 Loading pretrained model from {args.pretrained_model}")
+        # Find the best checkpoint in the pretrained model directory
+        checkpoint_dir = os.path.join(args.pretrained_model, "best-checkpoint.ckpt")
+        if os.path.exists(checkpoint_dir):
+            model = LitRNNClassifier.load_from_checkpoint(checkpoint_dir)
+            print("✅ Successfully loaded pretrained model")
+        else:
+            print(f"⚠️ Warning: No checkpoint found at {checkpoint_dir}")
 
-trainer.fit(model, train_loader, val_loader)
-print("✅ Training complete!") 
+    trainer.fit(model, train_loader, val_loader)
+    print("✅ Training complete!") 
