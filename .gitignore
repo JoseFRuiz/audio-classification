@@ -29,4 +29,4 @@ dist/
 Thumbs.db
 
 # Constantly changing files
-.multi_gpu.out
+multi_gpu.out
