@@ -27,3 +27,6 @@ dist/
 # OS or editor cruft
 .DS_Store
 Thumbs.db
+
+# Constantly changing files
+.multi_gpu.out
