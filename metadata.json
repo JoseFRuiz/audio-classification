@@ -1,0 +1,10 @@
+{
+  "total_samples": 31356,
+  "embedding_shape": [
+    499,
+    768
+  ],
+  "label_shape": [
+    200
+  ]
+}
