@@ -49,3 +49,7 @@ Metric val_loss improved. New best score: 0.043
 Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.043
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.043
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.042
+Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.041
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.041
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.041
+slurmstepd: error: *** JOB 4018531 ON c1107a-s11 CANCELLED AT 2025-06-02T20:48:50 DUE TO TIME LIMIT ***
