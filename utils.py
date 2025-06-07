@@ -1,6 +1,9 @@
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import librosa
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
+
 
 TARGET_LENGTH = 10 * 16000
 SAMPLE_RATE = 16000
@@ -22,3 +25,78 @@ def extract_wav2vec_embeddings(audio_path, processor, wav2vec_model, device):
         outputs = wav2vec_model(input_values)
         embeddings = outputs.last_hidden_state.squeeze(0)  # Shape: (time_steps, 768)
     return embeddings.cpu().numpy()  # Shape: (time_steps, 768) 
+
+def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, eps=1e-8):
+    """
+    Asymmetric Loss for multi-label classification with sparse labels.
+
+    Args:
+        logits: raw model outputs (before sigmoid), shape (batch, num_classes)
+        labels: binary targets, shape (batch, num_classes)
+        gamma_pos: focusing parameter for positive labels
+        gamma_neg: focusing parameter for negative labels
+        margin: margin for negative class scores
+    """
+    probas = torch.sigmoid(logits)
+    pos_inds = labels == 1
+    neg_inds = labels == 0
+
+    # Positive loss
+    pos_loss = (1 - probas[pos_inds]) ** gamma_pos * torch.log(probas[pos_inds] + eps)
+
+    # Negative loss with margin
+    neg_probas = torch.clamp(probas[neg_inds] - margin, min=0)
+    neg_loss = (neg_probas) ** gamma_neg * torch.log(1 - neg_probas + eps)
+
+    loss = - (pos_loss.sum() + neg_loss.sum()) / logits.size(0)
+    return loss
+
+class MeanContrastiveRankingLoss(nn.Module):
+    def __init__(self, margin=0.1, reduction='mean'):
+        """
+        Margin-based contrastive loss using the mean of positive and negative class scores.
+
+        Args:
+            margin (float): Minimum required difference between mean positive and mean negative scores.
+            reduction (str): 'mean', 'sum', or 'none' reduction over the batch.
+        """
+        super().__init__()
+        self.margin = margin
+        self.reduction = reduction
+
+    def forward(self, logits, labels):
+        """
+        Args:
+            logits: Tensor of shape (batch_size, num_classes), raw model outputs
+            labels: Tensor of shape (batch_size, num_classes), binary ground truth labels
+        """
+        probs = torch.sigmoid(logits)  # Apply sigmoid to convert logits to probabilities
+        batch_size = logits.size(0)
+        losses = []
+
+        for i in range(batch_size):
+            scores = probs[i]
+            true_labels = labels[i]
+
+            pos_inds = (true_labels == 1).nonzero(as_tuple=True)[0]
+            neg_inds = (true_labels == 0).nonzero(as_tuple=True)[0]
+
+            if len(pos_inds) == 0 or len(neg_inds) == 0:
+                continue  # Skip if no positives or no negatives
+
+            mean_pos = scores[pos_inds].mean()
+            mean_neg = scores[neg_inds].mean()
+            loss = F.relu(self.margin - (mean_pos - mean_neg))
+            losses.append(loss)
+
+        if len(losses) == 0:
+            return torch.tensor(0.0, requires_grad=True, device=logits.device)
+
+        losses = torch.stack(losses)
+
+        if self.reduction == 'mean':
+            return losses.mean()
+        elif self.reduction == 'sum':
+            return losses.sum()
+        else:
+            return losses

@@ -136,6 +136,20 @@ class TrainEvalMetricsCallback(Callback):
 
         pl_module.train()  # Switch back to training mode
 
+class WeightNormCallback(Callback):
+    def __init__(self):
+        super().__init__()
+    
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Calculate L2 norm for each parameter group
+        weight_norms = {}
+        for name, param in pl_module.named_parameters():
+            if param.requires_grad:  # Only compute for trainable parameters
+                weight_norms[f"weight_norm/{name}"] = torch.norm(param.data, p=2).item()
+        
+        # Log all weight norms
+        trainer.logger.log_metrics(weight_norms, step=trainer.current_epoch)
+
 # ========================
 # 1. Parse Input Arguments
 # ========================
@@ -375,9 +389,10 @@ csv_logger = CSVLogger(
     flush_logs_every_n_steps=args.log_interval  # Use log_interval parameter
 )
 train_eval_callback = TrainEvalMetricsCallback(train_loader)
+weight_norm_callback = WeightNormCallback()  # Add weight norm callback
 trainer = pl.Trainer(
     max_epochs=args.epochs,
-    callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback],
+    callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback, weight_norm_callback],  # Add weight_norm_callback
     accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
     default_root_dir=args.save_dir,
     logger=csv_logger,
