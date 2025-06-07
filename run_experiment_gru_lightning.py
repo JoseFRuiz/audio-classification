@@ -378,7 +378,7 @@ class LitRNNClassifier(pl.LightningModule):
 # 8. Training
 # ========================
 model = LitRNNClassifier(
-    input_dim=train_dataset[0][0].shape[0],
+    input_dim=train_dataset[0][0].shape[1],  # Use the feature dimension (768) from the embeddings
     hidden_dim=256,
     num_layers=1,
     num_classes=train_dataset[0][1].shape[0],
