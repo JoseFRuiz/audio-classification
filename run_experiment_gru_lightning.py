@@ -6,7 +6,9 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_007" --epochs 1000 --eval_interval 10 --lr 1e-4 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1
 # python run_experiment_gru_lightning.py --save_dir "gru_008" --epochs 10000 --eval_interval 100 --lr 1e-4 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --pretrained_model "gru_007"
 # python run_experiment_gru_lightning.py --save_dir "gru_009" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1
-# python run_experiment_gru_lightning.py --save_dir "gru_010" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1
+# python run_experiment_gru_lightning.py --save_dir "gru_010" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce"
+# python run_experiment_gru_lightning.py --save_dir "gru_011" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0
+# python run_experiment_gru_lightning.py --save_dir "gru_012" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "contrastive" --loss_margin 0.1
 
 import os
 import argparse
@@ -167,6 +169,11 @@ parser.add_argument("--save_dir", type=str, default="results", help="Directory t
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
 parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available")
 parser.add_argument("--embedding_dir", type=str, default=".", help="Directory to load/save embeddings")
+parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive"], 
+                   help="Loss function to use: bce, asymmetric, or contrastive")
+parser.add_argument("--loss_margin", type=float, default=0.1, help="Margin for contrastive loss")
+parser.add_argument("--gamma_pos", type=float, default=0.0, help="Gamma positive for asymmetric loss")
+parser.add_argument("--gamma_neg", type=float, default=4.0, help="Gamma negative for asymmetric loss")
 args = parser.parse_args()
 
 # ========================
@@ -299,7 +306,8 @@ val_loader = DataLoader(
 # 7. Lightning Model
 # ========================
 class LitRNNClassifier(pl.LightningModule):
-    def __init__(self, input_dim, hidden_dim, num_layers, num_classes, lr, weight_decay, dropout):
+    def __init__(self, input_dim, hidden_dim, num_layers, num_classes, lr, weight_decay, dropout, 
+                 loss_fn="bce", loss_margin=0.1, gamma_pos=0.0, gamma_neg=4.0):
         super().__init__()
         self.save_hyperparameters()
         self.gru = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout)
@@ -310,7 +318,19 @@ class LitRNNClassifier(pl.LightningModule):
             nn.Linear(128, num_classes),
             nn.Sigmoid()
         )
-        self.loss_fn = nn.BCELoss()
+        
+        # Initialize loss function based on the argument
+        if loss_fn == "bce":
+            self.loss_fn = nn.BCELoss()
+        elif loss_fn == "asymmetric":
+            self.loss_fn = lambda preds, targets: asymmetric_loss(
+                preds, targets, gamma_pos=gamma_pos, gamma_neg=gamma_neg
+            )
+        elif loss_fn == "contrastive":
+            self.loss_fn = MeanContrastiveRankingLoss(margin=loss_margin)
+        else:
+            raise ValueError(f"Unknown loss function: {loss_fn}")
+            
         self.f1 = MultilabelF1Score(num_labels=num_classes, average="macro")
         self.map = MultilabelAveragePrecision(num_labels=num_classes, average="macro")
         self.auc = MultilabelAUROC(num_labels=num_classes, average="macro")
@@ -364,7 +384,11 @@ model = LitRNNClassifier(
     num_classes=train_dataset[0][1].shape[0],
     lr=args.lr,
     weight_decay=args.weight_decay,
-    dropout=args.dropout
+    dropout=args.dropout,
+    loss_fn=args.loss_fn,
+    loss_margin=args.loss_margin,
+    gamma_pos=args.gamma_pos,
+    gamma_neg=args.gamma_neg
 )
 
 checkpoint_callback = ModelCheckpoint(
