@@ -197,14 +197,14 @@ if not os.path.exists(AUDIO_DIR):
 print(f"🔹 Number of clips in CSV: {len(clip_ids)}")
 
 embedding_dir = args.embedding_dir
-# Create a subdirectory for embeddings
-embeddings_subdir = os.path.join(embedding_dir, "embeddings")
+# Create a subdirectory for embeddings at repository root level
+embeddings_subdir = os.path.join(embedding_dir, "..", "embeddings")
 os.makedirs(embeddings_subdir, exist_ok=True)
 
 print(f"🔹 Checking for precomputed embeddings in: {embeddings_subdir}")
-if os.path.exists(os.path.join(embedding_dir, "metadata.json")):
+if os.path.exists(os.path.join(embedding_dir, "..", "metadata.json")):
     print("🔹 Loading precomputed embeddings metadata...")
-    with open(os.path.join(embedding_dir, "metadata.json"), "r") as f:
+    with open(os.path.join(embedding_dir, "..", "metadata.json"), "r") as f:
         metadata = json.load(f)
     print(f"🔹 Found {metadata['total_samples']} precomputed embeddings")
 else:
@@ -247,7 +247,7 @@ else:
         "embedding_shape": emb.shape,
         "label_shape": labels.shape[1:]
     }
-    with open(os.path.join(embedding_dir, "metadata.json"), "w") as f:
+    with open(os.path.join(embedding_dir, "..", "metadata.json"), "w") as f:
         json.dump(metadata, f, indent=2)
     
     print("🔹 Saved embeddings and metadata for future runs.")
