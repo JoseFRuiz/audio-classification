@@ -44,3 +44,4 @@ You should probably TRAIN this model on a down-stream task to be able to use it 
 GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
+slurmstepd: error: *** JOB 4989763 ON c1010a-s17 CANCELLED AT 2025-06-10T16:12:14 ***
