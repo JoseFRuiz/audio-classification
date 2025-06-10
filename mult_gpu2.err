@@ -32,33 +32,14 @@ You should probably TRAIN this model on a down-stream task to be able to use it 
 GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
-Traceback (most recent call last):
-  File "run_experiment_gru_lightning.py", line 454, in <module>
-    trainer.fit(model, train_loader, val_loader)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
-    call._call_and_handle_interrupt(
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
-    return trainer_fn(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
-    self._run(model, ckpt_path=ckpt_path)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
-    results = self._run_stage()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 1023, in _run_stage
-    self._run_sanity_check()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 1052, in _run_sanity_check
-    val_loop.run()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/utilities.py", line 178, in _decorator
-    return loop_run(self, *args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 135, in run
-    self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 396, in _evaluation_step
-    output = call._call_strategy_hook(trainer, hook_name, *step_args)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 319, in _call_strategy_hook
-    output = fn(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/strategies/strategy.py", line 411, in validation_step
-    return self.lightning_module.validation_step(*args, **kwargs)
-  File "run_experiment_gru_lightning.py", line 376, in validation_step
-    loss = self.loss_fn(preds, y)
-  File "run_experiment_gru_lightning.py", line 338, in <lambda>
-    self.loss_fn = lambda preds, targets: asymmetric_loss(
-NameError: name 'asymmetric_loss' is not defined
+/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: No positive samples found in target, recall is undefined. Setting recall to one for all thresholds.
+  warnings.warn(*args, **kwargs)  # noqa: B028
+/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: No positive samples in targets, true positive value should be meaningless. Returning zero tensor in true positive score
+  warnings.warn(*args, **kwargs)  # noqa: B028
+Some weights of Wav2Vec2Model were not initialized from the model checkpoint at facebook/wav2vec2-base-960h and are newly initialized: ['wav2vec2.masked_spec_embed']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py:88: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.1 and num_layers=1
+  warnings.warn("dropout option adds dropout after all but last "
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
