@@ -145,12 +145,24 @@ class WeightNormCallback(Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         # Calculate L2 norm for each parameter group
         weight_norms = {}
+        grad_norms = {}
+        
+        # Add epoch to metrics
+        weight_norms["epoch"] = trainer.current_epoch
+        grad_norms["epoch"] = trainer.current_epoch
+        
         for name, param in pl_module.named_parameters():
             if param.requires_grad:  # Only compute for trainable parameters
+                # Weight norms
                 weight_norms[f"weight_norm/{name}"] = torch.norm(param.data, p=2).item()
+                
+                # Gradient norms (if gradients exist)
+                if param.grad is not None:
+                    grad_norms[f"grad_norm/{name}"] = torch.norm(param.grad.data, p=2).item()
         
-        # Log all weight norms
+        # Log all weight and gradient norms
         trainer.logger.log_metrics(weight_norms, step=trainer.current_epoch)
+        trainer.logger.log_metrics(grad_norms, step=trainer.current_epoch)
 
 # ========================
 # 1. Parse Input Arguments
