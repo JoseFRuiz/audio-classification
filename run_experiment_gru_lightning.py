@@ -26,7 +26,7 @@ import librosa
 from tqdm import tqdm
 from pytorch_lightning.loggers import CSVLogger
 import json
-from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH
+from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH, asymmetric_loss, MeanContrastiveRankingLoss
 import multiprocessing
 
 class EmbeddingDataset(Dataset):
