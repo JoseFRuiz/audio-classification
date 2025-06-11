@@ -44,3 +44,4 @@ GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
 Metric val_loss improved. New best score: 6.740
+Monitored metric val_loss = nan is not finite. Previous best value was 6.740. Signaling Trainer to stop.
