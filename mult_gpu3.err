@@ -7,7 +7,7 @@ GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
 You are using a CUDA device ('NVIDIA A100-SXM4-80GB') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
-/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /blue/azare/jruizmunoz/yt_mi/audio-classification/gru_012 exists and is not empty.
+/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /blue/azare/jruizmunoz/yt_mi/audio-classification/gru_015 exists and is not empty.
 LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 
   | Name    | Type                       | Params | Mode 
@@ -44,5 +44,7 @@ You should probably TRAIN this model on a down-stream task to be able to use it 
 GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
-Metric val_loss improved. New best score: 0.011
-Monitored metric val_loss = nan is not finite. Previous best value was 0.011. Signaling Trainer to stop.
+Metric val_loss improved. New best score: 0.008
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.008
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.007
+Monitored metric val_loss did not improve in the last 10 records. Best score: 0.007. Signaling Trainer to stop.
