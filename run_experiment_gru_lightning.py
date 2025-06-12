@@ -12,6 +12,9 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_013" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce"
 # python run_experiment_gru_lightning.py --save_dir "gru_014" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0
 # python run_experiment_gru_lightning.py --save_dir "gru_015" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "contrastive" --loss_margin 0.1
+# python run_experiment_gru_lightning.py --save_dir "gru_016" --epochs 1000 --pretrained_model "gru_013" --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce"
+# python run_experiment_gru_lightning.py --save_dir "gru_017" --epochs 1000 --pretrained_model "gru_014" --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0
+# python run_experiment_gru_lightning.py --save_dir "gru_018" --epochs 1000 --pretrained_model "gru_015" --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "contrastive" --loss_margin 0.1
 
 import os
 import argparse
