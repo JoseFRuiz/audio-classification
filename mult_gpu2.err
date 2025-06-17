@@ -46,3 +46,4 @@ HPU available: False, using: 0 HPUs
 Metric val_loss improved. New best score: 6.524
 Metric val_loss improved by 0.020 >= min_delta = 0.0. New best score: 6.503
 Metric val_loss improved by 0.004 >= min_delta = 0.0. New best score: 6.499
+`Trainer.fit` stopped: `max_epochs=1000` reached.

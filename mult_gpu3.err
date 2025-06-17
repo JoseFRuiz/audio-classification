@@ -48,3 +48,4 @@ Metric val_loss improved. New best score: 0.008
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.007
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.007
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.007
+`Trainer.fit` stopped: `max_epochs=1000` reached.
