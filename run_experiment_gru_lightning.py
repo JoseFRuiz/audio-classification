@@ -203,6 +203,11 @@ args = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() and args.use_gpu else "cpu")
 print(f"\n🔹 Using device: {device}\n")
 
+# Enable Tensor Cores for better performance
+if args.use_gpu and torch.cuda.is_available():
+    torch.set_float32_matmul_precision('high')
+    print("🔹 Enabled Tensor Cores for better performance")
+
 # ========================
 # 3. Load Wav2Vec 2.0 Model
 # ========================
@@ -331,7 +336,9 @@ class LitRNNClassifier(pl.LightningModule):
                  loss_fn="bce", loss_margin=0.1, gamma_pos=0.0, gamma_neg=4.0):
         super().__init__()
         self.save_hyperparameters()
-        self.gru = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True, dropout=dropout)
+        # Only apply dropout if num_layers > 1
+        gru_dropout = dropout if num_layers > 1 else 0
+        self.gru = nn.GRU(input_dim, hidden_dim, num_layers, batch_first=True, dropout=gru_dropout)
         self.fc = nn.Sequential(
             nn.Linear(hidden_dim, 128),
             nn.ReLU(),
@@ -401,7 +408,7 @@ class LitRNNClassifier(pl.LightningModule):
 model = LitRNNClassifier(
     input_dim=train_dataset[0][0].shape[1],  # Use the feature dimension (768) from the embeddings
     hidden_dim=256,
-    num_layers=1,
+    num_layers=2,  # Changed from 1 to 2 to properly utilize dropout
     num_classes=train_dataset[0][1].shape[0],
     lr=args.lr,
     weight_decay=args.weight_decay,
@@ -437,12 +444,13 @@ train_eval_callback = TrainEvalMetricsCallback(train_loader)
 weight_norm_callback = WeightNormCallback()  # Add weight norm callback
 trainer = pl.Trainer(
     max_epochs=args.epochs,
-    callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback, weight_norm_callback],  # Add weight_norm_callback
+    callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback, weight_norm_callback],
     accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
     default_root_dir=args.save_dir,
     logger=csv_logger,
     check_val_every_n_epoch=args.eval_interval,
-    log_every_n_steps=args.log_interval  # Use log_interval parameter
+    log_every_n_steps=args.log_interval,
+    gradient_clip_val=1.0  # Add gradient clipping to prevent exploding gradients
 )
 
 if __name__ == '__main__':
@@ -459,6 +467,12 @@ if __name__ == '__main__':
             print("✅ Successfully loaded pretrained model")
         else:
             print(f"⚠️ Warning: No checkpoint found at {checkpoint_dir}")
+
+    # Adjust learning rate if it's too high
+    if args.lr > 1e-3:
+        print(f"⚠️ Warning: Learning rate {args.lr} might be too high. Adjusting to 1e-3")
+        model.hparams.lr = 1e-3
+        print(f"🔹 New learning rate: {model.hparams.lr}")
 
     trainer.fit(model, train_loader, val_loader)
     print("✅ Training complete!") 
