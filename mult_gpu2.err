@@ -40,3 +40,4 @@ Metric val_loss improved. New best score: 6.626
 Metric val_loss improved by 0.032 >= min_delta = 0.0. New best score: 6.593
 Metric val_loss improved by 0.011 >= min_delta = 0.0. New best score: 6.582
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 6.582
+Metric val_loss improved by 0.016 >= min_delta = 0.0. New best score: 6.566
