@@ -41,3 +41,13 @@ Metric val_loss improved by 0.032 >= min_delta = 0.0. New best score: 6.593
 Metric val_loss improved by 0.011 >= min_delta = 0.0. New best score: 6.582
 Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 6.582
 Metric val_loss improved by 0.016 >= min_delta = 0.0. New best score: 6.566
+Metric val_loss improved by 0.007 >= min_delta = 0.0. New best score: 6.559
+Metric val_loss improved by 0.003 >= min_delta = 0.0. New best score: 6.556
+Metric val_loss improved by 0.005 >= min_delta = 0.0. New best score: 6.551
+Metric val_loss improved by 0.013 >= min_delta = 0.0. New best score: 6.538
+Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 6.538
+Metric val_loss improved by 0.003 >= min_delta = 0.0. New best score: 6.534
+Metric val_loss improved by 0.002 >= min_delta = 0.0. New best score: 6.533
+Metric val_loss improved by 0.018 >= min_delta = 0.0. New best score: 6.515
+Metric val_loss improved by 0.005 >= min_delta = 0.0. New best score: 6.510
+`Trainer.fit` stopped: `max_epochs=1000` reached.
