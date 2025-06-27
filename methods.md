@@ -54,6 +54,10 @@ $$
 * $\delta$ is a tunable margin hyperparameter.
 * This loss applies a **ranking constraint** at the aggregate level, rather than per pair.
 
+## 4. AUC loss
+
+https://www.erikdrysdale.com/auc_max/
+
 ---
 
 ## Summary Table
@@ -63,3 +67,15 @@ $$
 | **BCE**  | $-\sum_i \left[ y_i \log p_i + (1 - y_i) \log (1 - p_i) \right]$      | Treats all labels equally                                 |
 | **ASL**  | Weighted BCE with asymmetric focusing and margin                      | Focuses on hard positives and suppresses easy negatives   |
 | **MCRL** | $\max\left(0, \delta - (\mu_{\text{pos}} - \mu_{\text{neg}}) \right)$ | Enforces average score of positives to be above negatives |
+
+
+### Classifiers with Wav2Vec
+
+| 📘 **Paper & Link**                                                                                                                                                                      | 🎯 **Task**                               | 🧠 **Architecture**                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------- |
+| **Improving Tone Recognition Performance using Wav2Vec 2.0**<br>(Yoruba tone recognition) — **GRU & Light‑GRU**<br>[Link](https://dl.acm.org/doi/10.1145/3690384?utm_source=chatgpt.com) | Tone recognition (low‑resourced language) | GRU / LiGRU                                             |
+| **Emotion Recognition from Speech Using Wav2Vec 2.0 Embeddings**<br>(Pepino et al., Interspeech 2021) — **MLP / LSTM fusion**<br>[ArXiv/ISCA](https://arxiv.org/abs/2104.03502)          | Speech emotion (IEMOCAP, RAVDESS)         | Multiple shallow models including LSTM                  |
+| **Speech Emotion Recognition using fine‑tuned Wav2Vec 2.0 + NCDE**<br>(Wang & Yang, PLoS ONE 2025) — **NCDE**<br>[PLOS ONE](https://doi.org/10.1371/journal.pone.0318297)                | Speech emotion (IEMOCAP)                  | Neural Controlled Differential Equations                |
+| **Exploring Wav2Vec 2.0 fine‑tuning for improved SER**<br>(Chen & Rudnicky, ArXiv 2021) — **Transformers**<br>[ArXiv](https://arxiv.org/abs/2110.06309)                                  | SER (IEMOCAP)                             | Fine-tuned Wav2Vec + Transformer fine-tuning strategies |
+| **Multi-level Fusion of Wav2Vec 2.0 and BERT for Multimodal Emotion Recognition**<br>(Zhao et al., ArXiv 2022) — **Co-Attention**<br>[ArXiv](https://arxiv.org/abs/2207.04697)           | Multimodal emotion recognition            | Co-attention Fusion with Wav2Vec and BERT               |
+| **Dawn of the Transformer Era in Speech Emotion Recognition**<br>(Wagner et al., T-PAMI 2023) — **Audio Transformer**<br>[Zenodo model](https://zenodo.org/record/6221127)               | Dimensional emotion (valence/arousal)     | Fine-tuned Wav2Vec + Transformer head                   |

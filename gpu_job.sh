@@ -23,6 +23,6 @@ module load cuda/11.1
 
 source activate audio-classification
 
-python run_experiment_gru_lightning.py --save_dir "gru_019" --epochs 1000 --pretrained_model "gru_010" --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce"
+python run_experiment_gru_lightning.py --save_dir "gru_022" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0
 
 conda deactivate
