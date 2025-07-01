@@ -1,56 +1,30 @@
-GPU Driver '570' detected
-Some weights of Wav2Vec2Model were not initialized from the model checkpoint at facebook/wav2vec2-base-960h and are newly initialized: ['wav2vec2.masked_spec_embed']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-HPU available: False, using: 0 HPUs
-/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /blue/azare/jruizmunoz/yt_mi/audio-classification/gru_019 exists and is not empty.
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Lmod has detected the following error: The following module(s) are unknown:
+"cuda/11.1"
 
-  | Name    | Type                       | Params | Mode 
----------------------------------------------------------------
-0 | gru     | GRU                        | 787 K  | train
-1 | fc      | Sequential                 | 58.7 K | train
-2 | loss_fn | BCELoss                    | 0      | train
-3 | f1      | MultilabelF1Score          | 0      | train
-4 | map     | MultilabelAveragePrecision | 0      | train
-5 | auc     | MultilabelAUROC            | 0      | train
----------------------------------------------------------------
-846 K     Trainable params
-0         Non-trainable params
-846 K     Total params
-3.387     Total estimated model params size (MB)
-11        Modules in train mode
-0         Modules in eval mode
-SLURM auto-requeueing enabled. Setting signal handlers.
+Please check the spelling or version number. Also try "module spider ..."
+It is also possible your cache file is out-of-date; it may help to try:
+  $ module --ignore_cache load "cuda/11.1"
+
+Also make sure that all modulefiles written in TCL start with the string
+#%Module
+
+
+
 Some weights of Wav2Vec2Model were not initialized from the model checkpoint at facebook/wav2vec2-base-960h and are newly initialized: ['wav2vec2.masked_spec_embed']
 You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/cuda/__init__.py:230: UserWarning: 
+NVIDIA B200 with CUDA capability sm_100 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_50 sm_60 sm_70 sm_75 sm_80 sm_86 sm_37 sm_90.
+If you want to use the NVIDIA B200 GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  warnings.warn(
 GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
 HPU available: False, using: 0 HPUs
-/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: No positive samples found in target, recall is undefined. Setting recall to one for all thresholds.
-  warnings.warn(*args, **kwargs)  # noqa: B028
-/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torchmetrics/utilities/prints.py:43: UserWarning: No positive samples in targets, true positive value should be meaningless. Returning zero tensor in true positive score
-  warnings.warn(*args, **kwargs)  # noqa: B028
-Some weights of Wav2Vec2Model were not initialized from the model checkpoint at facebook/wav2vec2-base-960h and are newly initialized: ['wav2vec2.masked_spec_embed']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-HPU available: False, using: 0 HPUs
-Metric val_loss improved. New best score: 0.051
-Metric val_loss improved by 0.002 >= min_delta = 0.0. New best score: 0.049
-Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.048
-Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.048
-Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.047
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.047
-Metric val_loss improved by 0.001 >= min_delta = 0.0. New best score: 0.046
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.046
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.045
-Metric val_loss improved by 0.000 >= min_delta = 0.0. New best score: 0.045
+/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /blue/azare/jruizmunoz/yt_mi/audio-classification/gru_022 exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 Traceback (most recent call last):
-  File "run_experiment_gru_lightning.py", line 477, in <module>
+  File "run_experiment_gru_lightning.py", line 478, in <module>
     trainer.fit(model, train_loader, val_loader)
   File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
     call._call_and_handle_interrupt(
@@ -58,64 +32,26 @@ Traceback (most recent call last):
     return trainer_fn(*args, **kwargs)
   File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
     self._run(model, ckpt_path=ckpt_path)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 981, in _run
-    results = self._run_stage()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 1025, in _run_stage
-    self.fit_loop.run()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/fit_loop.py", line 205, in run
-    self.advance()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/fit_loop.py", line 363, in advance
-    self.epoch_loop.run(self._data_fetcher)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 140, in run
-    self.advance(data_fetcher)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 250, in advance
-    batch_output = self.automatic_optimization.run(trainer.optimizers[0], batch_idx, kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 190, in run
-    self._optimizer_step(batch_idx, closure)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 268, in _optimizer_step
-    call._call_lightning_module_hook(
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 167, in _call_lightning_module_hook
-    output = fn(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/core/module.py", line 1306, in optimizer_step
-    optimizer.step(closure=optimizer_closure)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/core/optimizer.py", line 153, in step
-    step_output = self._strategy.optimizer_step(self._optimizer, closure, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/strategies/strategy.py", line 238, in optimizer_step
-    return self.precision_plugin.optimizer_step(optimizer, model=model, closure=closure, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/plugins/precision/precision.py", line 122, in optimizer_step
-    return optimizer.step(closure=closure, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/optim/optimizer.py", line 484, in wrapper
-    out = func(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/optim/optimizer.py", line 89, in _use_grad
-    ret = func(self, *args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/optim/adam.py", line 205, in step
-    loss = closure()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/plugins/precision/precision.py", line 108, in _wrap_closure
-    closure_result = closure()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 144, in __call__
-    self._result = self.closure(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
-    return func(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 129, in closure
-    step_output = self._step_fn()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/loops/optimization/automatic.py", line 317, in _training_step
-    training_step_output = call._call_strategy_hook(trainer, "training_step", *kwargs.values())
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 319, in _call_strategy_hook
-    output = fn(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/strategies/strategy.py", line 390, in training_step
-    return self.lightning_module.training_step(*args, **kwargs)
-  File "run_experiment_gru_lightning.py", line 374, in training_step
-    preds = self(x)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "run_experiment_gru_lightning.py", line 368, in forward
-    _, h_n = self.gru(x)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py", line 1139, in forward
-    result = _VF.gru(input, hx, self._flat_weights, self.bias, self.num_layers,
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 294.00 MiB. GPU 0 has a total capacity of 79.25 GiB of which 282.25 MiB is free. Including non-PyTorch memory, this process has 12.28 GiB memory in use. Process 1489464 has 814.00 MiB memory in use. Process 1489688 has 814.00 MiB memory in use. Process 3908407 has 65.07 GiB memory in use. Of the allocated memory 8.02 GiB is allocated by PyTorch, and 3.76 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 957, in _run
+    self.strategy.setup(self)
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/strategies/strategy.py", line 154, in setup
+    self.model_to_device()
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/strategies/single_device.py", line 79, in model_to_device
+    self.model.to(self.root_device)
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/lightning_fabric/utilities/device_dtype_mixin.py", line 55, in to
+    return super().to(*args, **kwargs)
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1174, in to
+    return self._apply(convert)
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 780, in _apply
+    module._apply(fn)
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py", line 228, in _apply
+    self._init_flat_weights()
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py", line 163, in _init_flat_weights
+    self.flatten_parameters()
+  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py", line 215, in flatten_parameters
+    torch._cudnn_rnn_flatten_weight(
+RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
