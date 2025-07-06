@@ -32,3 +32,25 @@ Thumbs.db
 multi_gpu.out
 multi_gpu2.out
 multi_gpu3.out
+
+# Core dump files (from crashes)
+core.*
+*.core
+
+# Large log files
+*.log
+*.err
+
+# Temporary files
+*.tmp
+*.temp
+
+# Checkpoint files (can be large)
+*.ckpt
+*.pth
+
+# Embeddings directory (can be very large)
+embeddings/
+
+# SLURM output files
+slurm-*.out
