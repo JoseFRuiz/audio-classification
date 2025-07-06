@@ -29,7 +29,7 @@ def extract_wav2vec_embeddings(audio_path, processor, wav2vec_model, device):
 def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, eps=1e-8):
     """
     Asymmetric Loss for multi-label classification with sparse labels.
-    Optimized to handle large tensors and prevent integer overflow by using mean instead of sum.
+    Optimized to handle large tensors and prevent integer overflow by avoiding large boolean indexing.
 
     Args:
         logits: raw model outputs (before sigmoid), shape (batch, num_classes)
@@ -46,44 +46,40 @@ def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, e
     probas = torch.sigmoid(logits)
     probas = torch.clamp(probas, min=eps, max=1.0 - eps)
     
-    pos_inds = labels == 1
-    neg_inds = labels == 0
-
-    # Process positive loss using mean instead of sum
-    if pos_inds.sum() > 0:
-        pos_probas = probas[pos_inds]
-        if gamma_pos == 0.0:
-            pos_loss = torch.log(pos_probas + eps)
-        else:
-            pos_loss = (1 - pos_probas) ** gamma_pos * torch.log(pos_probas + eps)
-        pos_loss_mean = pos_loss.mean()
-    else:
-        pos_loss_mean = torch.tensor(0.0, device=logits.device, requires_grad=True)
-
-    # Process negative loss using mean instead of sum
-    if neg_inds.sum() > 0:
-        neg_probas = probas[neg_inds]
-        neg_probas_clamped = torch.clamp(neg_probas - margin, min=0)
-        if gamma_neg == 0.0:
-            neg_loss = torch.log(1 - neg_probas_clamped + eps)
-        else:
-            neg_loss = (neg_probas_clamped) ** gamma_neg * torch.log(1 - neg_probas_clamped + eps)
-        neg_loss_mean = neg_loss.mean()
-    else:
-        neg_loss_mean = torch.tensor(0.0, device=logits.device, requires_grad=True)
-
-    # Calculate final loss using weighted combination of means
-    # Weight by the proportion of positive and negative samples
-    pos_weight = pos_inds.sum().float() / logits.numel()
-    neg_weight = neg_inds.sum().float() / logits.numel()
+    # Calculate loss element-wise to avoid large boolean indexing
+    batch_size, num_classes = logits.shape
     
-    total_loss = -(pos_weight * pos_loss_mean + neg_weight * neg_loss_mean)
+    # Initialize loss tensors
+    pos_loss = torch.zeros_like(probas)
+    neg_loss = torch.zeros_like(probas)
+    
+    # Positive loss calculation
+    pos_mask = (labels == 1)
+    if gamma_pos == 0.0:
+        pos_loss = torch.where(pos_mask, torch.log(probas + eps), torch.zeros_like(probas))
+    else:
+        pos_loss = torch.where(pos_mask, 
+                              (1 - probas) ** gamma_pos * torch.log(probas + eps), 
+                              torch.zeros_like(probas))
+    
+    # Negative loss calculation
+    neg_mask = (labels == 0)
+    neg_probas_clamped = torch.clamp(probas - margin, min=0)
+    if gamma_neg == 0.0:
+        neg_loss = torch.where(neg_mask, 
+                              torch.log(1 - neg_probas_clamped + eps), 
+                              torch.zeros_like(probas))
+    else:
+        neg_loss = torch.where(neg_mask, 
+                              (neg_probas_clamped) ** gamma_neg * torch.log(1 - neg_probas_clamped + eps), 
+                              torch.zeros_like(probas))
+    
+    # Sum all losses and normalize by batch size
+    total_loss = -(pos_loss.sum() + neg_loss.sum()) / batch_size
     
     # Check for invalid values
     if torch.isnan(total_loss) or torch.isinf(total_loss):
         print(f"Warning: Invalid loss value detected: {total_loss}")
-        print(f"pos_loss_mean: {pos_loss_mean}, neg_loss_mean: {neg_loss_mean}")
-        print(f"pos_weight: {pos_weight}, neg_weight: {neg_weight}")
         # Return a small positive loss to prevent training from stopping
         return torch.tensor(0.1, device=logits.device, requires_grad=True)
     
