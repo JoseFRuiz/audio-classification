@@ -66,10 +66,28 @@ Traceback (most recent call last):
     output = fn(*args, **kwargs)
   File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/strategies/strategy.py", line 403, in validation_step
     return self.lightning_module.validation_step(*args, **kwargs)
-  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 415, in validation_step
-    loss = self.loss_fn(preds, y)
-  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 377, in <lambda>
-    self.loss_fn = lambda preds, targets: asymmetric_loss(
-  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/utils.py", line 65, in asymmetric_loss
-    neg_probas = probas[neg_inds]
-RuntimeError: numel: integer multiplication overflow
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 420, in validation_step
+    self.log('val_f1', self.f1(preds, y.int()), on_step=False, on_epoch=True)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1190, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torchmetrics/metric.py", line 245, in forward
+    self._forward_cache = self._forward_reduce_state_update(*args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torchmetrics/metric.py", line 309, in _forward_reduce_state_update
+    self.update(*args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torchmetrics/metric.py", line 405, in wrapped_func
+    raise err
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torchmetrics/metric.py", line 395, in wrapped_func
+    update(*args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torchmetrics/classification/stat_scores.py", line 468, in update
+    _multilabel_stat_scores_tensor_validation(
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torchmetrics/functional/classification/stat_scores.py", line 625, in _multilabel_stat_scores_tensor_validation
+    unique_values = torch.unique(target)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torch/_jit_internal.py", line 485, in fn
+    return if_false(*args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torch/_jit_internal.py", line 485, in fn
+    return if_false(*args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torch/functional.py", line 877, in _return_output
+    output, _, _ = _unique_impl(input, sorted, return_inverse, return_counts, dim)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/torch/functional.py", line 791, in _unique_impl
+    output, inverse_indices, counts = torch._unique2(
+RuntimeError: IntArrayRef contains an int that cannot be represented as a SymInt: -4864159004096672563
