@@ -555,17 +555,28 @@ weight_norm_callback = WeightNormCallback()  # Add weight norm callback
 # Disable sanity check if validation dataset is too small
 num_sanity_val_steps = 0 if len(val_dataset) < adjusted_batch_size else 2
 
+# Configure trainer based on device
+if args.use_gpu and torch.cuda.is_available():
+    trainer_config = {
+        'accelerator': 'gpu',
+        'devices': 1
+    }
+else:
+    trainer_config = {
+        'accelerator': 'cpu',
+        'devices': None  # Use all available CPU cores
+    }
+
 trainer = pl.Trainer(
     max_epochs=args.epochs,
     callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback, weight_norm_callback],
-    accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
-    devices=1 if args.use_gpu and torch.cuda.is_available() else None,
     default_root_dir=args.save_dir,
     logger=csv_logger,
     check_val_every_n_epoch=args.eval_interval,
     log_every_n_steps=args.log_interval,
     gradient_clip_val=1.0,  # Add gradient clipping to prevent exploding gradients
-    num_sanity_val_steps=num_sanity_val_steps  # Disable sanity check for small validation sets
+    num_sanity_val_steps=num_sanity_val_steps,  # Disable sanity check for small validation sets
+    **trainer_config
 )
 
 if __name__ == '__main__':
