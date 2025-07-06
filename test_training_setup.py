@@ -55,9 +55,39 @@ def test_training_setup():
         test_clip_ids = clip_ids[:1000]  # Use first 1000
         test_labels = labels[:1000]
         
-        # Test dataset creation
-        train_dataset = EmbeddingDataset(embeddings_dir, test_clip_ids, test_labels, is_train=True, test_size=0.2)
-        val_dataset = EmbeddingDataset(embeddings_dir, test_clip_ids, test_labels, is_train=False, test_size=0.2)
+        # First, filter clip_ids to only include those with embedding files
+        valid_indices = []
+        valid_clip_ids = []
+        valid_labels = []
+        
+        for idx, (clip_id, label) in enumerate(zip(test_clip_ids, test_labels)):
+            embedding_path = os.path.join(embeddings_dir, f"{clip_id}.npy")
+            if os.path.exists(embedding_path):
+                valid_indices.append(idx)
+                valid_clip_ids.append(clip_id)
+                valid_labels.append(label)
+        
+        if len(valid_clip_ids) == 0:
+            print("❌ No valid clip IDs found in test subset")
+            return False
+        
+        print(f"🔹 Valid clip IDs in test subset: {len(valid_clip_ids)}")
+        
+        # Create train/test split on the filtered data
+        indices = np.arange(len(valid_clip_ids))
+        np.random.seed(42)
+        np.random.shuffle(indices)
+        split_idx = int(len(indices) * 0.8)  # 80% train, 20% val
+        
+        train_indices = indices[:split_idx]
+        val_indices = indices[split_idx:]
+        
+        print(f"🔹 Test train split size: {len(train_indices)}")
+        print(f"🔹 Test validation split size: {len(val_indices)}")
+        
+        # Test dataset creation with pre-computed indices
+        train_dataset = EmbeddingDataset(embeddings_dir, valid_clip_ids, valid_labels, indices=train_indices, is_train=True)
+        val_dataset = EmbeddingDataset(embeddings_dir, valid_clip_ids, valid_labels, indices=val_indices, is_train=False)
         
         print(f"✅ Train dataset size: {len(train_dataset)}")
         print(f"✅ Validation dataset size: {len(val_dataset)}")

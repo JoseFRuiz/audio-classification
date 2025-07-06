@@ -40,7 +40,7 @@ from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TAR
 import multiprocessing
 
 class EmbeddingDataset(Dataset):
-    def __init__(self, embedding_dir, clip_ids, labels, is_train=True, test_size=0.1, random_state=42):
+    def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42):
         self.embedding_dir = embedding_dir
         self.is_train = is_train
         
@@ -66,16 +66,20 @@ class EmbeddingDataset(Dataset):
         self.clip_ids = np.array(valid_clip_ids)
         self.labels = np.array(valid_labels)
         
-        # Create train/test split indices
-        indices = np.arange(len(self.clip_ids))
-        np.random.seed(random_state)
-        np.random.shuffle(indices)
-        split_idx = int(len(indices) * (1 - test_size))
-        
-        if is_train:
-            self.indices = indices[:split_idx]
+        # Use provided indices if available, otherwise create train/test split
+        if indices is not None:
+            self.indices = indices
         else:
-            self.indices = indices[split_idx:]
+            # Create train/test split indices
+            indices = np.arange(len(self.clip_ids))
+            np.random.seed(random_state)
+            np.random.shuffle(indices)
+            split_idx = int(len(indices) * (1 - test_size))
+            
+            if is_train:
+                self.indices = indices[:split_idx]
+            else:
+                self.indices = indices[split_idx:]
         
         print(f"🔹 {'Training' if is_train else 'Validation'} dataset size: {len(self.indices)}")
         if len(self.indices) == 0:
@@ -379,12 +383,8 @@ try:
         raise ValueError("Validation split is empty. This might be due to an incorrect test_size parameter.")
     
     # Create datasets with pre-filtered data
-    train_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, is_train=True, test_size=0.0)
-    val_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, is_train=False, test_size=0.0)
-    
-    # Override the indices to use our pre-computed splits
-    train_dataset.indices = train_indices
-    val_dataset.indices = val_indices
+    train_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=train_indices, is_train=True)
+    val_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=val_indices, is_train=False)
     
     print(f"🔹 Train dataset size: {len(train_dataset)}")
     print(f"🔹 Validation dataset size: {len(val_dataset)}")
