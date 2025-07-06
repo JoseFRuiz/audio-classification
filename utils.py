@@ -77,8 +77,8 @@ def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, e
     # Sum all losses and normalize by batch size
     total_loss = -(pos_loss.sum() + neg_loss.sum()) / batch_size
     
-    # Check for invalid values
-    if torch.isnan(total_loss) or torch.isinf(total_loss):
+    # Ensure loss is positive and finite
+    if torch.isnan(total_loss) or torch.isinf(total_loss) or total_loss < 0:
         print(f"Warning: Invalid loss value detected: {total_loss}")
         # Return a small positive loss to prevent training from stopping
         return torch.tensor(0.1, device=logits.device, requires_grad=True)

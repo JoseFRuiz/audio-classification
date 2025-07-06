@@ -38,6 +38,7 @@ from pytorch_lightning.loggers import CSVLogger
 import json
 from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH, asymmetric_loss, MeanContrastiveRankingLoss
 import multiprocessing
+import time
 
 class EmbeddingDataset(Dataset):
     def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42):
@@ -471,8 +472,9 @@ class LitRNNClassifier(pl.LightningModule):
         if loss_fn == "bce":
             self.loss_fn = nn.BCELoss()
         elif loss_fn == "asymmetric":
+            # Use a simpler asymmetric loss configuration
             self.loss_fn = lambda preds, targets: asymmetric_loss(
-                preds, targets, gamma_pos=gamma_pos, gamma_neg=gamma_neg
+                preds, targets, gamma_pos=0.0, gamma_neg=2.0, margin=0.05
             )
         elif loss_fn == "contrastive":
             self.loss_fn = MeanContrastiveRankingLoss(margin=loss_margin)
@@ -523,24 +525,31 @@ class LitRNNClassifier(pl.LightningModule):
                     preds_safe = torch.clamp(preds, min=1e-7, max=1.0-1e-7)
                     y_safe = y.int()
                     
-                    # Compute metrics one by one to catch individual errors
-                    try:
-                        f1_score = self.f1(preds_safe, y_safe)
-                        self.log('val_f1', f1_score, on_step=False, on_epoch=True)
-                    except Exception as e:
-                        print(f"⚠️ Warning: Error computing F1 score: {str(e)}")
-                    
-                    try:
-                        map_score = self.map(preds_safe, y_safe)
-                        self.log('val_map', map_score, on_step=False, on_epoch=True)
-                    except Exception as e:
-                        print(f"⚠️ Warning: Error computing MAP score: {str(e)}")
-                    
-                    try:
-                        auc_score = self.auc(preds_safe, y_safe)
-                        self.log('val_auc', auc_score, on_step=False, on_epoch=True)
-                    except Exception as e:
-                        print(f"⚠️ Warning: Error computing AUC score: {str(e)}")
+                    # Check for valid label distribution
+                    if y_safe.sum() > 0 and y_safe.sum() < y_safe.numel():
+                        # Compute metrics one by one to catch individual errors
+                        try:
+                            f1_score = self.f1(preds_safe, y_safe)
+                            if not torch.isnan(f1_score) and not torch.isinf(f1_score):
+                                self.log('val_f1', f1_score, on_step=False, on_epoch=True)
+                        except Exception as e:
+                            print(f"⚠️ Warning: Error computing F1 score: {str(e)}")
+                        
+                        try:
+                            map_score = self.map(preds_safe, y_safe)
+                            if not torch.isnan(map_score) and not torch.isinf(map_score):
+                                self.log('val_map', map_score, on_step=False, on_epoch=True)
+                        except Exception as e:
+                            print(f"⚠️ Warning: Error computing MAP score: {str(e)}")
+                        
+                        try:
+                            auc_score = self.auc(preds_safe, y_safe)
+                            if not torch.isnan(auc_score) and not torch.isinf(auc_score):
+                                self.log('val_auc', auc_score, on_step=False, on_epoch=True)
+                        except Exception as e:
+                            print(f"⚠️ Warning: Error computing AUC score: {str(e)}")
+                    else:
+                        print(f"⚠️ Warning: Invalid label distribution in validation batch {batch_idx}")
                         
                 else:
                     print(f"⚠️ Warning: Invalid labels detected in validation batch {batch_idx}")
@@ -621,7 +630,14 @@ trainer = pl.Trainer(
 
 if __name__ == '__main__':
     # Set multiprocessing start method
-    multiprocessing.set_start_method('spawn', force=True)
+    try:
+        multiprocessing.set_start_method('spawn', force=True)
+    except RuntimeError:
+        pass  # Already set
+    
+    # Add a simple guard to prevent multiple executions
+    start_time = time.time()
+    print(f"🔹 Starting training script at {time.strftime('%Y-%m-%d %H:%M:%S')}")
     
     # Load pretrained model if specified
     if args.pretrained_model is not None:
@@ -675,4 +691,5 @@ if __name__ == '__main__':
     
     print(f"\n🚀 Starting training...")
     trainer.fit(model, train_loader, val_loader)
-    print("✅ Training complete!") 
+    print("✅ Training complete!")
+    print(f"🔹 Total training time: {time.time() - start_time:.2f} seconds") 
