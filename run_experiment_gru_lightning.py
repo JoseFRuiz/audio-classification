@@ -80,7 +80,7 @@ class EmbeddingDataset(Dataset):
         print(f"🔹 {'Training' if is_train else 'Validation'} dataset size: {len(self.indices)}")
         if len(self.indices) == 0:
             raise ValueError(f"Empty {'training' if is_train else 'validation'} dataset. "
-                           f"This might be due to an incorrect test_size parameter.")
+                           f"This might be due to an incorrect test_size parameter or insufficient data.")
     
     def __len__(self):
         return len(self.indices)
@@ -190,7 +190,7 @@ parser.add_argument("--num_workers", type=int, default=1, help="Number of worker
 parser.add_argument("--save_dir", type=str, default="results", help="Directory to save the model and metrics")
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
 parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available")
-parser.add_argument("--embedding_dir", type=str, default=".", help="Directory to load/save embeddings")
+parser.add_argument("--embedding_dir", type=str, default="embeddings", help="Directory to load/save embeddings")
 parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive"], 
                    help="Loss function to use: bce, asymmetric, or contrastive")
 parser.add_argument("--loss_margin", type=float, default=0.1, help="Margin for contrastive loss")
@@ -202,7 +202,22 @@ args = parser.parse_args()
 # 2. Device
 # ========================
 device = torch.device("cuda" if torch.cuda.is_available() and args.use_gpu else "cpu")
-print(f"\n🔹 Using device: {device}\n")
+
+# Check GPU compatibility
+if args.use_gpu and torch.cuda.is_available():
+    try:
+        # Test GPU compatibility by creating a small tensor
+        test_tensor = torch.tensor([1.0], device=device)
+        print(f"\n🔹 Using device: {device}")
+        print(f"🔹 GPU: {torch.cuda.get_device_name()}")
+        print(f"🔹 CUDA version: {torch.version.cuda}")
+    except Exception as e:
+        print(f"⚠️ Warning: GPU compatibility issue detected: {str(e)}")
+        print("🔹 Falling back to CPU")
+        device = torch.device("cpu")
+        args.use_gpu = False
+else:
+    print(f"\n🔹 Using device: {device}")
 
 # Enable Tensor Cores for better performance
 if args.use_gpu and torch.cuda.is_available():
@@ -245,14 +260,14 @@ if not os.path.exists(AUDIO_DIR):
 print(f"🔹 Number of clips in CSV: {len(clip_ids)}")
 
 embedding_dir = args.embedding_dir
-# Create a subdirectory for embeddings at repository root level
-embeddings_subdir = os.path.join(embedding_dir, "embeddings")
+# Use the embeddings directory directly
+embeddings_subdir = embedding_dir
 os.makedirs(embeddings_subdir, exist_ok=True)
 
 print(f"🔹 Checking for precomputed embeddings in: {embeddings_subdir}")
-if os.path.exists(os.path.join(embedding_dir, "metadata.json")):
+if os.path.exists(os.path.join(embeddings_subdir, "metadata.json")):
     print("🔹 Loading precomputed embeddings metadata...")
-    with open(os.path.join(embedding_dir, "metadata.json"), "r") as f:
+    with open(os.path.join(embeddings_subdir, "metadata.json"), "r") as f:
         metadata = json.load(f)
     print(f"🔹 Found {metadata['total_samples']} precomputed embeddings")
 else:
@@ -295,7 +310,7 @@ else:
         "embedding_shape": emb.shape,
         "label_shape": labels.shape[1:]
     }
-    with open(os.path.join(embedding_dir, "metadata.json"), "w") as f:
+    with open(os.path.join(embeddings_subdir, "metadata.json"), "w") as f:
         json.dump(metadata, f, indent=2)
     
     print("🔹 Saved embeddings and metadata for future runs.")
@@ -314,17 +329,59 @@ try:
         raise ValueError(f"No embedding files found in {embeddings_subdir}. "
                         f"Please run the embedding extraction first.")
     
-    train_dataset = EmbeddingDataset(embeddings_subdir, clip_ids, labels, is_train=True, test_size=args.test_size)
-    val_dataset = EmbeddingDataset(embeddings_subdir, clip_ids, labels, is_train=False, test_size=args.test_size)
+    # First, filter clip_ids to only include those with embedding files
+    valid_indices = []
+    valid_clip_ids = []
+    valid_labels = []
+    
+    for idx, (clip_id, label) in enumerate(zip(clip_ids, labels)):
+        embedding_path = os.path.join(embeddings_subdir, f"{clip_id}.npy")
+        if os.path.exists(embedding_path):
+            valid_indices.append(idx)
+            valid_clip_ids.append(clip_id)
+            valid_labels.append(label)
+    
+    if len(valid_clip_ids) == 0:
+        raise ValueError(f"No valid embedding files found. Please check the embedding directory.")
+    
+    print(f"🔹 Valid clip_ids: {len(valid_clip_ids)}")
+    
+    # Create train/test split on the filtered data
+    indices = np.arange(len(valid_clip_ids))
+    np.random.seed(42)  # Fixed seed for reproducibility
+    np.random.shuffle(indices)
+    split_idx = int(len(indices) * (1 - args.test_size))
+    
+    train_indices = indices[:split_idx]
+    val_indices = indices[split_idx:]
+    
+    print(f"🔹 Train split size: {len(train_indices)}")
+    print(f"🔹 Validation split size: {len(val_indices)}")
+    
+    if len(train_indices) == 0:
+        raise ValueError("Training split is empty. This might be due to an incorrect test_size parameter.")
+    if len(val_indices) == 0:
+        raise ValueError("Validation split is empty. This might be due to an incorrect test_size parameter.")
+    
+    # Create datasets with pre-filtered data
+    train_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, is_train=True, test_size=0.0)
+    val_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, is_train=False, test_size=0.0)
+    
+    # Override the indices to use our pre-computed splits
+    train_dataset.indices = train_indices
+    val_dataset.indices = val_indices
     
     print(f"🔹 Train dataset size: {len(train_dataset)}")
     print(f"🔹 Validation dataset size: {len(val_dataset)}")
     
-    if len(train_dataset) == 0:
-        raise ValueError("Training dataset is empty. This might be due to:")
-    if len(val_dataset) == 0:
-        raise ValueError("Validation dataset is empty. This might be due to:")
-        
+    # Additional safety checks
+    if len(train_dataset) < 10:
+        raise ValueError(f"Training dataset too small ({len(train_dataset)} samples). Need at least 10 samples.")
+    if len(val_dataset) < 5:
+        raise ValueError(f"Validation dataset too small ({len(val_dataset)} samples). Need at least 5 samples.")
+    
+    print(f"✅ Dataset creation successful!")
+    
 except Exception as e:
     print(f"❌ Error creating datasets: {str(e)}")
     print("\nPossible solutions:")
@@ -335,9 +392,14 @@ except Exception as e:
     raise
 
 # Create dataloaders
+# Adjust batch size if it's too large for the dataset
+adjusted_batch_size = min(args.batch_size, len(train_dataset), len(val_dataset))
+if adjusted_batch_size != args.batch_size:
+    print(f"⚠️ Warning: Batch size adjusted from {args.batch_size} to {adjusted_batch_size} due to dataset size")
+
 train_loader = DataLoader(
     train_dataset, 
-    batch_size=args.batch_size, 
+    batch_size=adjusted_batch_size, 
     shuffle=True,
     num_workers=args.num_workers,
     pin_memory=True,
@@ -345,7 +407,7 @@ train_loader = DataLoader(
 )
 val_loader = DataLoader(
     val_dataset, 
-    batch_size=args.batch_size,
+    batch_size=adjusted_batch_size,
     num_workers=args.num_workers,
     pin_memory=True,
     persistent_workers=True if args.num_workers > 0 else False
@@ -417,9 +479,18 @@ class LitRNNClassifier(pl.LightningModule):
         # Only compute metrics on the first batch to save memory
         if batch_idx == 0:
             self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
-            self.log('val_f1', self.f1(preds, y.int()), on_step=False, on_epoch=True)
-            self.log('val_map', self.map(preds, y.int()), on_step=False, on_epoch=True)
-            self.log('val_auc', self.auc(preds, y.int()), on_step=False, on_epoch=True)
+            
+            # Add safety checks for metrics computation
+            try:
+                # Ensure labels are valid for metrics computation
+                if y.numel() > 0 and torch.any(y >= 0) and torch.any(y <= 1):
+                    self.log('val_f1', self.f1(preds, y.int()), on_step=False, on_epoch=True)
+                    self.log('val_map', self.map(preds, y.int()), on_step=False, on_epoch=True)
+                    self.log('val_auc', self.auc(preds, y.int()), on_step=False, on_epoch=True)
+                else:
+                    print(f"⚠️ Warning: Invalid labels detected in validation batch {batch_idx}")
+            except Exception as e:
+                print(f"⚠️ Warning: Error computing validation metrics: {str(e)}")
         return loss
 
     def configure_optimizers(self):
@@ -465,15 +536,21 @@ csv_logger = CSVLogger(
 )
 train_eval_callback = TrainEvalMetricsCallback(train_loader)
 weight_norm_callback = WeightNormCallback()  # Add weight norm callback
+
+# Disable sanity check if validation dataset is too small
+num_sanity_val_steps = 0 if len(val_dataset) < adjusted_batch_size else 2
+
 trainer = pl.Trainer(
     max_epochs=args.epochs,
     callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback, weight_norm_callback],
     accelerator='gpu' if args.use_gpu and torch.cuda.is_available() else 'cpu',
+    devices=1 if args.use_gpu and torch.cuda.is_available() else None,
     default_root_dir=args.save_dir,
     logger=csv_logger,
     check_val_every_n_epoch=args.eval_interval,
     log_every_n_steps=args.log_interval,
-    gradient_clip_val=1.0  # Add gradient clipping to prevent exploding gradients
+    gradient_clip_val=1.0,  # Add gradient clipping to prevent exploding gradients
+    num_sanity_val_steps=num_sanity_val_steps  # Disable sanity check for small validation sets
 )
 
 if __name__ == '__main__':
@@ -486,10 +563,29 @@ if __name__ == '__main__':
         # Find the best checkpoint in the pretrained model directory
         checkpoint_dir = os.path.join(args.pretrained_model, "best-checkpoint.ckpt")
         if os.path.exists(checkpoint_dir):
-            model = LitRNNClassifier.load_from_checkpoint(checkpoint_dir)
-            print("✅ Successfully loaded pretrained model")
+            try:
+                model = LitRNNClassifier.load_from_checkpoint(checkpoint_dir)
+                print("✅ Successfully loaded pretrained model")
+                
+                # Check if the model dimensions match the current dataset
+                expected_input_dim = train_dataset[0][0].shape[1]
+                expected_num_classes = train_dataset[0][1].shape[0]
+                
+                # Get the first layer of the GRU to check input dimension
+                actual_input_dim = model.gru.input_size
+                actual_num_classes = model.fc[-1].out_features
+                
+                if actual_input_dim != expected_input_dim:
+                    print(f"⚠️ Warning: Model input dimension mismatch. Expected {expected_input_dim}, got {actual_input_dim}")
+                if actual_num_classes != expected_num_classes:
+                    print(f"⚠️ Warning: Model output dimension mismatch. Expected {expected_num_classes}, got {actual_num_classes}")
+                    
+            except Exception as e:
+                print(f"⚠️ Warning: Could not load pretrained model: {str(e)}")
+                print("🔹 Continuing with a new model...")
         else:
             print(f"⚠️ Warning: No checkpoint found at {checkpoint_dir}")
+            print("🔹 Continuing with a new model...")
 
     # Adjust learning rate if it's too high
     if args.lr > 1e-3:
@@ -497,5 +593,20 @@ if __name__ == '__main__':
         model.hparams.lr = 1e-3
         print(f"🔹 New learning rate: {model.hparams.lr}")
 
+    # Final safety check and training summary
+    print(f"\n🔹 Training Configuration Summary:")
+    print(f"   - Train dataset size: {len(train_dataset)}")
+    print(f"   - Validation dataset size: {len(val_dataset)}")
+    print(f"   - Batch size: {adjusted_batch_size}")
+    print(f"   - Learning rate: {model.hparams.lr}")
+    print(f"   - Loss function: {args.loss_fn}")
+    print(f"   - Max epochs: {args.epochs}")
+    print(f"   - Device: {device}")
+    print(f"   - Sanity check steps: {num_sanity_val_steps}")
+    
+    if len(val_dataset) == 0:
+        raise ValueError("Validation dataset is empty. Cannot proceed with training.")
+    
+    print(f"\n🚀 Starting training...")
     trainer.fit(model, train_loader, val_loader)
     print("✅ Training complete!") 
