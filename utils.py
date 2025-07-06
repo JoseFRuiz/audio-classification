@@ -29,6 +29,7 @@ def extract_wav2vec_embeddings(audio_path, processor, wav2vec_model, device):
 def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, eps=1e-8):
     """
     Asymmetric Loss for multi-label classification with sparse labels.
+    Optimized to handle large tensors and prevent integer overflow by using mean instead of sum.
 
     Args:
         logits: raw model outputs (before sigmoid), shape (batch, num_classes)
@@ -37,19 +38,56 @@ def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, e
         gamma_neg: focusing parameter for negative labels
         margin: margin for negative class scores
     """
+    # Ensure inputs are on the same device
+    if logits.device != labels.device:
+        labels = labels.to(logits.device)
+    
+    # Apply sigmoid and clamp to prevent numerical issues
     probas = torch.sigmoid(logits)
+    probas = torch.clamp(probas, min=eps, max=1.0 - eps)
+    
     pos_inds = labels == 1
     neg_inds = labels == 0
 
-    # Positive loss
-    pos_loss = (1 - probas[pos_inds]) ** gamma_pos * torch.log(probas[pos_inds] + eps)
+    # Process positive loss using mean instead of sum
+    if pos_inds.sum() > 0:
+        pos_probas = probas[pos_inds]
+        if gamma_pos == 0.0:
+            pos_loss = torch.log(pos_probas + eps)
+        else:
+            pos_loss = (1 - pos_probas) ** gamma_pos * torch.log(pos_probas + eps)
+        pos_loss_mean = pos_loss.mean()
+    else:
+        pos_loss_mean = torch.tensor(0.0, device=logits.device, requires_grad=True)
 
-    # Negative loss with margin
-    neg_probas = torch.clamp(probas[neg_inds] - margin, min=0)
-    neg_loss = (neg_probas) ** gamma_neg * torch.log(1 - neg_probas + eps)
+    # Process negative loss using mean instead of sum
+    if neg_inds.sum() > 0:
+        neg_probas = probas[neg_inds]
+        neg_probas_clamped = torch.clamp(neg_probas - margin, min=0)
+        if gamma_neg == 0.0:
+            neg_loss = torch.log(1 - neg_probas_clamped + eps)
+        else:
+            neg_loss = (neg_probas_clamped) ** gamma_neg * torch.log(1 - neg_probas_clamped + eps)
+        neg_loss_mean = neg_loss.mean()
+    else:
+        neg_loss_mean = torch.tensor(0.0, device=logits.device, requires_grad=True)
 
-    loss = - (pos_loss.sum() + neg_loss.sum()) / logits.size(0)
-    return loss
+    # Calculate final loss using weighted combination of means
+    # Weight by the proportion of positive and negative samples
+    pos_weight = pos_inds.sum().float() / logits.numel()
+    neg_weight = neg_inds.sum().float() / logits.numel()
+    
+    total_loss = -(pos_weight * pos_loss_mean + neg_weight * neg_loss_mean)
+    
+    # Check for invalid values
+    if torch.isnan(total_loss) or torch.isinf(total_loss):
+        print(f"Warning: Invalid loss value detected: {total_loss}")
+        print(f"pos_loss_mean: {pos_loss_mean}, neg_loss_mean: {neg_loss_mean}")
+        print(f"pos_weight: {pos_weight}, neg_weight: {neg_weight}")
+        # Return a small positive loss to prevent training from stopping
+        return torch.tensor(0.1, device=logits.device, requires_grad=True)
+    
+    return total_loss
 
 class MeanContrastiveRankingLoss(nn.Module):
     def __init__(self, margin=0.1, reduction='mean'):

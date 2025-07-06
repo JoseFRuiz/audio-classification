@@ -302,14 +302,36 @@ else:
 
 # Create datasets
 try:
+    print(f"🔹 Creating datasets with test_size={args.test_size}")
+    print(f"🔹 Total clip_ids: {len(clip_ids)}")
+    print(f"🔹 Total labels shape: {labels.shape}")
+    
+    # Check if embedding files exist
+    embedding_files = [f for f in os.listdir(embeddings_subdir) if f.endswith('.npy')]
+    print(f"🔹 Found {len(embedding_files)} embedding files in {embeddings_subdir}")
+    
+    if len(embedding_files) == 0:
+        raise ValueError(f"No embedding files found in {embeddings_subdir}. "
+                        f"Please run the embedding extraction first.")
+    
     train_dataset = EmbeddingDataset(embeddings_subdir, clip_ids, labels, is_train=True, test_size=args.test_size)
     val_dataset = EmbeddingDataset(embeddings_subdir, clip_ids, labels, is_train=False, test_size=args.test_size)
+    
+    print(f"🔹 Train dataset size: {len(train_dataset)}")
+    print(f"🔹 Validation dataset size: {len(val_dataset)}")
+    
+    if len(train_dataset) == 0:
+        raise ValueError("Training dataset is empty. This might be due to:")
+    if len(val_dataset) == 0:
+        raise ValueError("Validation dataset is empty. This might be due to:")
+        
 except Exception as e:
     print(f"❌ Error creating datasets: {str(e)}")
     print("\nPossible solutions:")
     print("1. Check if the embedding files exist in the correct directory")
     print("2. Make sure the embedding files are named correctly (clip_id.npy)")
     print("3. Verify that the test_size parameter is appropriate")
+    print("4. Check if the CSV file contains the correct clip_ids")
     raise
 
 # Create dataloaders
