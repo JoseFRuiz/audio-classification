@@ -40,8 +40,9 @@ INFO:pytorch_lightning.utilities.rank_zero:GPU available: True (cuda), used: Tru
 INFO:pytorch_lightning.utilities.rank_zero:TPU available: False, using: 0 TPU cores
 INFO:pytorch_lightning.utilities.rank_zero:IPU available: False, using: 0 IPUs
 INFO:pytorch_lightning.utilities.rank_zero:HPU available: False, using: 0 HPUs
+terminate called without an active exception
 Traceback (most recent call last):
-  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 478, in <module>
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 500, in <module>
     trainer.fit(model, train_loader, val_loader)
   File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 545, in fit
     call._call_and_handle_interrupt(
@@ -65,10 +66,10 @@ Traceback (most recent call last):
     output = fn(*args, **kwargs)
   File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/strategies/strategy.py", line 403, in validation_step
     return self.lightning_module.validation_step(*args, **kwargs)
-  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 393, in validation_step
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 415, in validation_step
     loss = self.loss_fn(preds, y)
-  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 355, in <lambda>
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 377, in <lambda>
     self.loss_fn = lambda preds, targets: asymmetric_loss(
-  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/utils.py", line 45, in asymmetric_loss
-    pos_loss = (1 - probas[pos_inds]) ** gamma_pos * torch.log(probas[pos_inds] + eps)
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/utils.py", line 65, in asymmetric_loss
+    neg_probas = probas[neg_inds]
 RuntimeError: numel: integer multiplication overflow
