@@ -1,57 +1,74 @@
-Lmod has detected the following error: The following module(s) are unknown:
-"cuda/11.1"
-
-Please check the spelling or version number. Also try "module spider ..."
-It is also possible your cache file is out-of-date; it may help to try:
-  $ module --ignore_cache load "cuda/11.1"
-
-Also make sure that all modulefiles written in TCL start with the string
-#%Module
-
-
-
 Some weights of Wav2Vec2Model were not initialized from the model checkpoint at facebook/wav2vec2-base-960h and are newly initialized: ['wav2vec2.masked_spec_embed']
 You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/cuda/__init__.py:230: UserWarning: 
+/apps/pytorch/1.13.0/lib/python3.10/site-packages/torch/cuda/__init__.py:155: UserWarning: 
 NVIDIA B200 with CUDA capability sm_100 is not compatible with the current PyTorch installation.
-The current PyTorch install supports CUDA capabilities sm_50 sm_60 sm_70 sm_75 sm_80 sm_86 sm_37 sm_90.
+The current PyTorch install supports CUDA capabilities sm_37 sm_50 sm_60 sm_70 sm_75 sm_80 sm_86.
 If you want to use the NVIDIA B200 GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
 
-  warnings.warn(
-GPU available: True (cuda), used: True
-TPU available: False, using: 0 TPU cores
-HPU available: False, using: 0 HPUs
-/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /blue/azare/jruizmunoz/yt_mi/audio-classification/gru_022 exists and is not empty.
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
-Traceback (most recent call last):
-  File "run_experiment_gru_lightning.py", line 478, in <module>
-    trainer.fit(model, train_loader, val_loader)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 538, in fit
-    call._call_and_handle_interrupt(
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/call.py", line 47, in _call_and_handle_interrupt
-    return trainer_fn(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 574, in _fit_impl
-    self._run(model, ckpt_path=ckpt_path)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py", line 957, in _run
-    self.strategy.setup(self)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/strategies/strategy.py", line 154, in setup
-    self.model_to_device()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/pytorch_lightning/strategies/single_device.py", line 79, in model_to_device
-    self.model.to(self.root_device)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/lightning_fabric/utilities/device_dtype_mixin.py", line 55, in to
-    return super().to(*args, **kwargs)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1174, in to
-    return self._apply(convert)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/module.py", line 780, in _apply
-    module._apply(fn)
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py", line 228, in _apply
-    self._init_flat_weights()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py", line 163, in _init_flat_weights
-    self.flatten_parameters()
-  File "/home/jruizmunoz/anaconda3/envs/audio-classification/lib/python3.8/site-packages/torch/nn/modules/rnn.py", line 215, in flatten_parameters
-    torch._cudnn_rnn_flatten_weight(
-RuntimeError: CUDA error: no kernel image is available for execution on the device
-CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
-For debugging consider passing CUDA_LAUNCH_BLOCKING=1
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+  warnings.warn(incompatible_device_warn.format(device_name, capability, " ".join(arch_list), device_name))
+INFO:pytorch_lightning.utilities.rank_zero:GPU available: True (cuda), used: True
+INFO:pytorch_lightning.utilities.rank_zero:TPU available: False, using: 0 TPU cores
+INFO:pytorch_lightning.utilities.rank_zero:IPU available: False, using: 0 IPUs
+INFO:pytorch_lightning.utilities.rank_zero:HPU available: False, using: 0 HPUs
+/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:630: Checkpoint directory gru_022 exists and is not empty.
+INFO:pytorch_lightning.accelerators.cuda:LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+INFO:pytorch_lightning.callbacks.model_summary:
+  | Name | Type                       | Params
+----------------------------------------------------
+0 | gru  | GRU                        | 1.2 M 
+1 | fc   | Sequential                 | 58.7 K
+2 | f1   | MultilabelF1Score          | 0     
+3 | map  | MultilabelAveragePrecision | 0     
+4 | auc  | MultilabelAUROC            | 0     
+----------------------------------------------------
+1.2 M     Trainable params
+0         Non-trainable params
+1.2 M     Total params
+4.966     Total estimated model params size (MB)
+INFO:pytorch_lightning.trainer.connectors.signal_connector:SLURM auto-requeueing enabled. Setting signal handlers.
+/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=9` in the `DataLoader` to improve performance.
+/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:104: Total length of `DataLoader` across ranks is zero. Please make sure this was your intention.
+Some weights of Wav2Vec2Model were not initialized from the model checkpoint at facebook/wav2vec2-base-960h and are newly initialized: ['wav2vec2.masked_spec_embed']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+/apps/pytorch/1.13.0/lib/python3.10/site-packages/torch/cuda/__init__.py:155: UserWarning: 
+NVIDIA B200 with CUDA capability sm_100 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_37 sm_50 sm_60 sm_70 sm_75 sm_80 sm_86.
+If you want to use the NVIDIA B200 GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
 
+  warnings.warn(incompatible_device_warn.format(device_name, capability, " ".join(arch_list), device_name))
+INFO:pytorch_lightning.utilities.rank_zero:GPU available: True (cuda), used: True
+INFO:pytorch_lightning.utilities.rank_zero:TPU available: False, using: 0 TPU cores
+INFO:pytorch_lightning.utilities.rank_zero:IPU available: False, using: 0 IPUs
+INFO:pytorch_lightning.utilities.rank_zero:HPU available: False, using: 0 HPUs
+Traceback (most recent call last):
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 478, in <module>
+    trainer.fit(model, train_loader, val_loader)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 545, in fit
+    call._call_and_handle_interrupt(
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/call.py", line 44, in _call_and_handle_interrupt
+    return trainer_fn(*args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 581, in _fit_impl
+    self._run(model, ckpt_path=ckpt_path)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 990, in _run
+    results = self._run_stage()
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 1034, in _run_stage
+    self._run_sanity_check()
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 1063, in _run_sanity_check
+    val_loop.run()
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/loops/utilities.py", line 181, in _decorator
+    return loop_run(self, *args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 134, in run
+    self._evaluation_step(batch, batch_idx, dataloader_idx, dataloader_iter)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/loops/evaluation_loop.py", line 391, in _evaluation_step
+    output = call._call_strategy_hook(trainer, hook_name, *step_args)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/trainer/call.py", line 309, in _call_strategy_hook
+    output = fn(*args, **kwargs)
+  File "/apps/pytorch/1.13.0/lib/python3.10/site-packages/pytorch_lightning/strategies/strategy.py", line 403, in validation_step
+    return self.lightning_module.validation_step(*args, **kwargs)
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 393, in validation_step
+    loss = self.loss_fn(preds, y)
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/run_experiment_gru_lightning.py", line 355, in <lambda>
+    self.loss_fn = lambda preds, targets: asymmetric_loss(
+  File "/blue/azare/jruizmunoz/yt_mi/audio-classification/utils.py", line 45, in asymmetric_loss
+    pos_loss = (1 - probas[pos_inds]) ** gamma_pos * torch.log(probas[pos_inds] + eps)
+RuntimeError: numel: integer multiplication overflow
