@@ -11,15 +11,13 @@
 #SBATCH --ntasks-per-socket=1
 #SBATCH --mem-per-cpu=20000mb
 #SBATCH --distribution=cyclic:cyclic
-#SBATCH --partition=gpu #hpg-b200 # instead of gpu
-#SBATCH --gres=gpu:a100:1
+#SBATCH --partition=hpg-b200 #hpg-b200 # instead of gpu
+#SBATCH --gres=gpu:1
 #SBATCH --time=96:00:00
 
 echo "Date      = $(date)"
 echo "host      = $(hostname -s)"
 echo "Directory = $(pwd)"
-
-module load cuda/11.1
 
 source activate audio-classification
 
