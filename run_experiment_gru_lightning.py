@@ -265,11 +265,26 @@ embeddings_subdir = embedding_dir
 os.makedirs(embeddings_subdir, exist_ok=True)
 
 print(f"🔹 Checking for precomputed embeddings in: {embeddings_subdir}")
-if os.path.exists(os.path.join(embeddings_subdir, "metadata.json")):
-    print("🔹 Loading precomputed embeddings metadata...")
-    with open(os.path.join(embeddings_subdir, "metadata.json"), "r") as f:
-        metadata = json.load(f)
-    print(f"🔹 Found {metadata['total_samples']} precomputed embeddings")
+
+# Check if embedding files exist directly
+embedding_files = [f for f in os.listdir(embeddings_subdir) if f.endswith('.npy')]
+if len(embedding_files) > 0:
+    print(f"🔹 Found {len(embedding_files)} precomputed embedding files")
+    
+    # Try to load metadata if it exists
+    if os.path.exists(os.path.join(embeddings_subdir, "metadata.json")):
+        print("🔹 Loading precomputed embeddings metadata...")
+        with open(os.path.join(embeddings_subdir, "metadata.json"), "r") as f:
+            metadata = json.load(f)
+        print(f"🔹 Metadata indicates {metadata.get('total_samples', 'unknown')} embeddings")
+    else:
+        print("🔹 No metadata.json found, but embedding files exist")
+        # Create basic metadata from existing files
+        metadata = {
+            "total_samples": len(embedding_files),
+            "embedding_files": embedding_files[:10]  # Store first 10 as example
+        }
+        print(f"🔹 Using {len(embedding_files)} existing embedding files")
 else:
     print("🔹 No precomputed embeddings found. Starting extraction...")
     processed_count = 0
