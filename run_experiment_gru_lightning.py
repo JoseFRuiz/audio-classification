@@ -564,7 +564,7 @@ if args.use_gpu and torch.cuda.is_available():
 else:
     trainer_config = {
         'accelerator': 'cpu',
-        'devices': None  # Use all available CPU cores
+        'devices': 1  # Use 1 CPU device instead of None
     }
 
 trainer = pl.Trainer(

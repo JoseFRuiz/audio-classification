@@ -7,10 +7,75 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-from torch.utils.data import DataLoader
+import torch
+from torch.utils.data import DataLoader, Dataset
 
 # Add the current directory to the path so we can import the modules
 sys.path.append('.')
+
+class EmbeddingDataset(Dataset):
+    def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42):
+        self.embedding_dir = embedding_dir
+        self.is_train = is_train
+        
+        print(f"🔹 Looking for embedding files in: {os.path.abspath(embedding_dir)}")
+        
+        # Filter clip_ids to only include those with embedding files
+        valid_indices = []
+        valid_clip_ids = []
+        valid_labels = []
+        
+        for idx, (clip_id, label) in enumerate(zip(clip_ids, labels)):
+            embedding_path = os.path.join(embedding_dir, f"{clip_id}.npy")
+            if os.path.exists(embedding_path):
+                valid_indices.append(idx)
+                valid_clip_ids.append(clip_id)
+                valid_labels.append(label)
+        
+        if len(valid_clip_ids) == 0:
+            raise ValueError(f"No embedding files found in {os.path.abspath(embedding_dir)}. "
+                           f"Please check if the embedding files exist and are named correctly "
+                           f"(should be named like 'clip_id.npy').")
+        
+        self.clip_ids = np.array(valid_clip_ids)
+        self.labels = np.array(valid_labels)
+        
+        # Use provided indices if available, otherwise create train/test split
+        if indices is not None:
+            self.indices = indices
+        else:
+            # Create train/test split indices
+            indices = np.arange(len(self.clip_ids))
+            np.random.seed(random_state)
+            np.random.shuffle(indices)
+            split_idx = int(len(indices) * (1 - test_size))
+            
+            if is_train:
+                self.indices = indices[:split_idx]
+            else:
+                self.indices = indices[split_idx:]
+        
+        print(f"🔹 {'Training' if is_train else 'Validation'} dataset size: {len(self.indices)}")
+        if len(self.indices) == 0:
+            raise ValueError(f"Empty {'training' if is_train else 'validation'} dataset. "
+                           f"This might be due to an incorrect test_size parameter or insufficient data.")
+    
+    def __len__(self):
+        return len(self.indices)
+    
+    def __getitem__(self, idx):
+        clip_idx = self.indices[idx]
+        clip_id = self.clip_ids[clip_idx]
+        label = self.labels[clip_idx]
+        
+        # Load embedding from file
+        embedding_path = os.path.join(self.embedding_dir, f"{clip_id}.npy")
+        if not os.path.exists(embedding_path):
+            raise FileNotFoundError(f"Embedding file not found: {embedding_path}")
+        
+        embedding = np.load(embedding_path)
+        
+        return torch.tensor(embedding, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
 def test_training_setup():
     """Test the training setup with existing embeddings."""
@@ -47,10 +112,8 @@ def test_training_setup():
         print(f"❌ Error loading CSV: {str(e)}")
         return False
     
-    # Test the dataset creation logic (without Wav2Vec model)
+    # Test the dataset creation logic (without importing the full script)
     try:
-        from run_experiment_gru_lightning import EmbeddingDataset
-        
         # Test with a small subset
         test_clip_ids = clip_ids[:1000]  # Use first 1000
         test_labels = labels[:1000]
@@ -123,7 +186,7 @@ if __name__ == "__main__":
     success = test_training_setup()
     if success:
         print("\n🎉 All tests passed! The training setup should work correctly.")
-        print("\nYou can now try running the training script:")
-        print("python run_experiment_gru_lightning.py --save_dir 'test_run' --epochs 2 --eval_interval 1 --lr 1e-3 --batch_size 32 --test_size 0.1 --dropout 0.1 --loss_fn 'bce'")
+        print("\nYou can now try running the training script with GPU:")
+        print("python run_experiment_gru_lightning.py --save_dir 'test_run' --epochs 2 --eval_interval 1 --lr 1e-3 --batch_size 32 --test_size 0.1 --dropout 0.1 --loss_fn 'bce' --use_gpu")
     else:
         print("\n❌ Tests failed. Please check the setup.") 
