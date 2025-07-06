@@ -18,7 +18,7 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_019" --epochs 1000 --pretrained_model "gru_010" --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce"
 # python run_experiment_gru_lightning.py --save_dir "gru_020" --epochs 1000 --pretrained_model "gru_011" --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0
 # python run_experiment_gru_lightning.py --save_dir "gru_021" --epochs 1000 --pretrained_model "gru_012" --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "contrastive" --loss_margin 0.1
-# python run_experiment_gru_lightning.py --save_dir "gru_022" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --use_gpu --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_022" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 1
 
 import os
 import argparse
@@ -215,6 +215,11 @@ if args.use_gpu and torch.cuda.is_available():
         print(f"\n🔹 Using device: {device}")
         print(f"🔹 GPU: {torch.cuda.get_device_name()}")
         print(f"🔹 CUDA version: {torch.version.cuda}")
+        
+        # Check GPU memory
+        gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3  # GB
+        print(f"🔹 GPU memory: {gpu_memory:.1f} GB")
+        
     except Exception as e:
         print(f"⚠️ Warning: GPU compatibility issue detected: {str(e)}")
         print("🔹 Falling back to CPU")
@@ -412,20 +417,35 @@ adjusted_batch_size = min(args.batch_size, len(train_dataset), len(val_dataset))
 if adjusted_batch_size != args.batch_size:
     print(f"⚠️ Warning: Batch size adjusted from {args.batch_size} to {adjusted_batch_size} due to dataset size")
 
+# Further adjust batch size based on GPU memory if using GPU
+if args.use_gpu and torch.cuda.is_available():
+    try:
+        gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3  # GB
+        if gpu_memory < 8:  # Less than 8GB
+            adjusted_batch_size = min(adjusted_batch_size, 32)
+            print(f"⚠️ Warning: Reduced batch size to {adjusted_batch_size} due to limited GPU memory ({gpu_memory:.1f} GB)")
+    except:
+        pass  # Ignore if GPU memory check fails
+
+# Adjust number of workers to avoid system warnings
+adjusted_num_workers = min(args.num_workers, 1)  # Limit to 1 worker to avoid issues
+if adjusted_num_workers != args.num_workers:
+    print(f"⚠️ Warning: Number of workers adjusted from {args.num_workers} to {adjusted_num_workers} to avoid system issues")
+
 train_loader = DataLoader(
     train_dataset, 
     batch_size=adjusted_batch_size, 
     shuffle=True,
-    num_workers=args.num_workers,
+    num_workers=adjusted_num_workers,
     pin_memory=True,
-    persistent_workers=True if args.num_workers > 0 else False
+    persistent_workers=True if adjusted_num_workers > 0 else False
 )
 val_loader = DataLoader(
     val_dataset, 
     batch_size=adjusted_batch_size,
-    num_workers=args.num_workers,
+    num_workers=adjusted_num_workers,
     pin_memory=True,
-    persistent_workers=True if args.num_workers > 0 else False
+    persistent_workers=True if adjusted_num_workers > 0 else False
 )
 
 # ========================
@@ -499,9 +519,29 @@ class LitRNNClassifier(pl.LightningModule):
             try:
                 # Ensure labels are valid for metrics computation
                 if y.numel() > 0 and torch.any(y >= 0) and torch.any(y <= 1):
-                    self.log('val_f1', self.f1(preds, y.int()), on_step=False, on_epoch=True)
-                    self.log('val_map', self.map(preds, y.int()), on_step=False, on_epoch=True)
-                    self.log('val_auc', self.auc(preds, y.int()), on_step=False, on_epoch=True)
+                    # Use smaller precision to avoid overflow
+                    preds_safe = torch.clamp(preds, min=1e-7, max=1.0-1e-7)
+                    y_safe = y.int()
+                    
+                    # Compute metrics one by one to catch individual errors
+                    try:
+                        f1_score = self.f1(preds_safe, y_safe)
+                        self.log('val_f1', f1_score, on_step=False, on_epoch=True)
+                    except Exception as e:
+                        print(f"⚠️ Warning: Error computing F1 score: {str(e)}")
+                    
+                    try:
+                        map_score = self.map(preds_safe, y_safe)
+                        self.log('val_map', map_score, on_step=False, on_epoch=True)
+                    except Exception as e:
+                        print(f"⚠️ Warning: Error computing MAP score: {str(e)}")
+                    
+                    try:
+                        auc_score = self.auc(preds_safe, y_safe)
+                        self.log('val_auc', auc_score, on_step=False, on_epoch=True)
+                    except Exception as e:
+                        print(f"⚠️ Warning: Error computing AUC score: {str(e)}")
+                        
                 else:
                     print(f"⚠️ Warning: Invalid labels detected in validation batch {batch_idx}")
             except Exception as e:
