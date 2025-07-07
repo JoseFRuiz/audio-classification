@@ -40,6 +40,7 @@ import json
 from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH, asymmetric_loss, MeanContrastiveRankingLoss
 import multiprocessing
 import time
+import shutil
 
 class EmbeddingDataset(Dataset):
     def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42):
@@ -247,7 +248,15 @@ wav2vec_model.to(device)
 TARGET_LENGTH = 10 * 16000
 SAMPLE_RATE = 16000
 
-os.makedirs(args.save_dir, exist_ok=True)
+# Ensure save_dir is a directory
+if os.path.exists(args.save_dir):
+    if not os.path.isdir(args.save_dir):
+        print(f"⚠️ {args.save_dir} exists as a file. Removing it to create a directory.")
+        os.remove(args.save_dir)
+        os.makedirs(args.save_dir, exist_ok=True)
+else:
+    os.makedirs(args.save_dir, exist_ok=True)
+
 # Save args to JSON for reproducibility
 with open(os.path.join(args.save_dir, "args.json"), "w") as f:
     json.dump(vars(args), f, indent=2)
