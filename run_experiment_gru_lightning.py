@@ -135,23 +135,74 @@ class TrainEvalMetricsCallback(Callback):
                 all_targets.append(y)
                 total_samples += x.size(0)
 
+        if total_samples == 0:
+            print("⚠️ Warning: No training samples found for metrics computation")
+            return
+
         all_preds = torch.cat(all_preds)
         all_targets = torch.cat(all_targets)
         avg_loss = total_loss / total_samples
 
-        train_f1 = f1(all_preds, all_targets.int()).item()
-        train_map = map_metric(all_preds, all_targets.int()).item()
-        train_auc = auc(all_preds, all_targets.int()).item()
-
-        # Log metrics with current epoch
-        current_epoch = trainer.current_epoch
-        trainer.logger.log_metrics({
-            "epoch": current_epoch,
-            "train_loss_eval": avg_loss,
-            "train_f1_eval": train_f1,
-            "train_map_eval": train_map,
-            "train_auc_eval": train_auc
-        }, step=current_epoch)
+        # Add safety checks for metrics computation
+        try:
+            # Ensure predictions and targets are valid
+            if all_preds.numel() > 0 and all_targets.numel() > 0:
+                # Clamp predictions to avoid numerical issues
+                all_preds_safe = torch.clamp(all_preds, min=1e-7, max=1.0-1e-7)
+                all_targets_safe = all_targets.int()
+                
+                # Check for valid label distribution
+                if all_targets_safe.sum() > 0 and all_targets_safe.sum() < all_targets_safe.numel():
+                    # Compute metrics one by one to catch individual errors
+                    try:
+                        train_f1 = f1(all_preds_safe, all_targets_safe).item()
+                        if not np.isnan(train_f1) and not np.isinf(train_f1):
+                            trainer.logger.log_metrics({
+                                "epoch": trainer.current_epoch,
+                                "train_loss_eval": avg_loss,
+                                "train_f1_eval": train_f1
+                            }, step=trainer.current_epoch)
+                    except Exception as e:
+                        print(f"⚠️ Warning: Error computing train F1 score: {str(e)}")
+                    
+                    try:
+                        train_map = map_metric(all_preds_safe, all_targets_safe).item()
+                        if not np.isnan(train_map) and not np.isinf(train_map):
+                            trainer.logger.log_metrics({
+                                "train_map_eval": train_map
+                            }, step=trainer.current_epoch)
+                    except Exception as e:
+                        print(f"⚠️ Warning: Error computing train MAP score: {str(e)}")
+                    
+                    try:
+                        train_auc = auc(all_preds_safe, all_targets_safe).item()
+                        if not np.isnan(train_auc) and not np.isinf(train_auc):
+                            trainer.logger.log_metrics({
+                                "train_auc_eval": train_auc
+                            }, step=trainer.current_epoch)
+                    except Exception as e:
+                        print(f"⚠️ Warning: Error computing train AUC score: {str(e)}")
+                else:
+                    print(f"⚠️ Warning: Invalid label distribution in training data")
+                    # Log only the loss
+                    trainer.logger.log_metrics({
+                        "epoch": trainer.current_epoch,
+                        "train_loss_eval": avg_loss
+                    }, step=trainer.current_epoch)
+            else:
+                print(f"⚠️ Warning: Empty predictions or targets")
+                # Log only the loss
+                trainer.logger.log_metrics({
+                    "epoch": trainer.current_epoch,
+                    "train_loss_eval": avg_loss
+                }, step=trainer.current_epoch)
+        except Exception as e:
+            print(f"⚠️ Warning: Error in train metrics computation: {str(e)}")
+            # Log only the loss as fallback
+            trainer.logger.log_metrics({
+                "epoch": trainer.current_epoch,
+                "train_loss_eval": avg_loss
+            }, step=trainer.current_epoch)
 
         pl_module.train()  # Switch back to training mode
 
@@ -608,7 +659,7 @@ csv_logger = CSVLogger(
     version=None,  # Don't create new version directories
     flush_logs_every_n_steps=args.log_interval  # Use log_interval parameter
 )
-train_eval_callback = TrainEvalMetricsCallback(train_loader)
+# train_eval_callback = TrainEvalMetricsCallback(train_loader)  # Temporarily disabled due to metrics computation issues
 weight_norm_callback = WeightNormCallback()  # Add weight norm callback
 
 # Disable sanity check if validation dataset is too small
@@ -628,7 +679,7 @@ else:
 
 trainer = pl.Trainer(
     max_epochs=args.epochs,
-    callbacks=[checkpoint_callback, early_stop_callback, train_eval_callback, weight_norm_callback],
+    callbacks=[checkpoint_callback, early_stop_callback, weight_norm_callback],  # Removed train_eval_callback temporarily
     default_root_dir=args.save_dir,
     logger=csv_logger,
     check_val_every_n_epoch=args.eval_interval,
