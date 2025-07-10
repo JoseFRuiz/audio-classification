@@ -24,10 +24,11 @@ python --version
 echo "🔹 Upgrading pip..."
 pip install --upgrade pip
 
-# Install PyTorch with pip (often more reliable than conda)
+# Install PyTorch with pip (latest version for B200 GPU support)
 if command -v nvidia-smi &> /dev/null; then
-    echo "🔹 Installing PyTorch with CUDA support via pip..."
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+    echo "🔹 Installing latest PyTorch with CUDA support for B200 GPU..."
+    # Try the latest nightly build which might support sm_100
+    pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
 else
     echo "🔹 Installing PyTorch CPU-only version via pip..."
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu

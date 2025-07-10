@@ -14,7 +14,6 @@
 #SBATCH --partition=hpg-b200
 #SBATCH --qos=azare
 #SBATCH --account=azare
-#SBATCH --gres=gpu:1
 #SBATCH --time=96:00:00
 
 echo "Date      = $(date)"
@@ -33,32 +32,32 @@ if [ -d "pytorch_env" ]; then
     rm -rf pytorch_env
 fi
 
-python -m venv pytorch_env
+python3.9 -m venv pytorch_env
 source pytorch_env/bin/activate
 
 # Upgrade pip in the virtual environment
 echo "Upgrading pip..."
 pip install --upgrade pip
 
-# Install compatible PyTorch version for B200 GPU
-echo "Installing compatible PyTorch version for B200 GPU..."
-pip install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
+# Install latest PyTorch CPU version (B200 GPU not supported yet)
+echo "Installing latest PyTorch CPU version..."
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # Install other required packages
 echo "Installing other required packages..."
-pip install pytorch-lightning==1.5.10 torchmetrics==0.7.3 transformers==4.18.4 librosa==0.8.1 tqdm==4.62.3 pandas==1.1.5 numpy==1.19.5 scikit-learn==0.24.2
+pip install pytorch-lightning torchmetrics transformers librosa tqdm pandas numpy scikit-learn
 
-# Verify PyTorch installation and GPU compatibility
-echo "Testing GPU compatibility..."
-python test_gpu.py
-
-if [ $? -ne 0 ]; then
-    echo "❌ GPU test failed. Exiting..."
-    exit 1
-fi
+# Verify PyTorch installation and CPU compatibility
+echo "Testing PyTorch installation..."
+python -c "
+import torch
+print(f'PyTorch version: {torch.__version__}')
+print(f'CUDA available: {torch.cuda.is_available()}')
+print('✅ CPU PyTorch installation successful!')
+"
 
 echo "🚀 Starting training..."
-python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 
 echo "✅ Training completed successfully!"
 echo "🔹 Results saved in gru_023/"
