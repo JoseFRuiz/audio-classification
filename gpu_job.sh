@@ -23,37 +23,21 @@ echo "Directory = $(pwd)"
 # Set up error handling
 set -e  # Exit on any error
 
-module load cuda/12.9.1
+# Activate existing conda environment
+echo "🔹 Activating existing audio-classification conda environment..."
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate audio-classification
 
-# Create and activate virtual environment
-echo "Creating virtual environment..."
-if [ -d "pytorch_env" ]; then
-    echo "Virtual environment already exists. Removing it..."
-    rm -rf pytorch_env
-fi
+# Check current Python version and PyTorch installation
+echo "🔹 Current Python version:"
+python --version
 
-python3.9 -m venv pytorch_env
-source pytorch_env/bin/activate
-
-# Upgrade pip in the virtual environment
-echo "Upgrading pip..."
-pip install --upgrade pip
-
-# Install latest PyTorch CPU version (B200 GPU not supported yet)
-echo "Installing latest PyTorch CPU version..."
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-# Install other required packages
-echo "Installing other required packages..."
-pip install pytorch-lightning torchmetrics transformers librosa tqdm pandas numpy scikit-learn
-
-# Verify PyTorch installation and CPU compatibility
-echo "Testing PyTorch installation..."
+echo "🔹 Checking PyTorch installation..."
 python -c "
 import torch
 print(f'PyTorch version: {torch.__version__}')
 print(f'CUDA available: {torch.cuda.is_available()}')
-print('✅ CPU PyTorch installation successful!')
+print('✅ PyTorch installation verified!')
 "
 
 echo "🚀 Starting training..."
@@ -61,8 +45,3 @@ python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval
 
 echo "✅ Training completed successfully!"
 echo "🔹 Results saved in gru_023/"
-
-# Clean up virtual environment (optional - comment out if you want to keep it)
-# echo "Cleaning up virtual environment..."
-# deactivate
-# rm -rf pytorch_env
