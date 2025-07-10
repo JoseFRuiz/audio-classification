@@ -42,11 +42,11 @@ pip install --upgrade pip
 
 # Install compatible PyTorch version for B200 GPU
 echo "Installing compatible PyTorch version for B200 GPU..."
-pip install torch==1.13.1+cu116 torchvision==0.14.1+cu116 torchaudio==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+pip install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2+cu113 --extra-index-url https://download.pytorch.org/whl/cu113
 
 # Install other required packages
 echo "Installing other required packages..."
-pip install pytorch-lightning==1.9.5 torchmetrics==0.11.4 transformers==4.21.3 librosa==0.9.2 tqdm==4.64.1 pandas==1.3.5 numpy==1.21.6 scikit-learn==1.0.2
+pip install pytorch-lightning==1.5.10 torchmetrics==0.7.3 transformers==4.18.4 librosa==0.8.1 tqdm==4.62.3 pandas==1.1.5 numpy==1.19.5 scikit-learn==0.24.2
 
 # Verify PyTorch installation and GPU compatibility
 echo "Testing GPU compatibility..."
