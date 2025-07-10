@@ -11,7 +11,7 @@
 #SBATCH --ntasks-per-socket=1
 #SBATCH --mem=180gb
 #SBATCH --distribution=cyclic:cyclic
-#SBATCH --partition=hpg-cpu
+#SBATCH --partition=hpg-default
 #SBATCH --qos=azare
 #SBATCH --account=azare
 #SBATCH --time=96:00:00
