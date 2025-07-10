@@ -10,7 +10,7 @@
   "num_workers": 1,
   "save_dir": "gru_023",
   "pretrained_model": null,
-  "use_gpu": true,
+  "use_gpu": false,
   "embedding_dir": "embeddings",
   "loss_fn": "bce",
   "loss_margin": 0.1,
