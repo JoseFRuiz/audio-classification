@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=audio-classification
-#SBATCH --output=multi_gpu.out
-#SBATCH --error=mult_gpu.err
+#SBATCH --job-name=audio-classification-cpu
+#SBATCH --output=cpu_training.out
+#SBATCH --error=cpu_training.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jfruizmu@unal.edu.co
 #SBATCH --nodes=1
@@ -40,8 +40,8 @@ print(f'CUDA available: {torch.cuda.is_available()}')
 print('✅ PyTorch installation verified!')
 "
 
-echo "🚀 Starting training..."
+echo "🚀 Starting CPU training..."
 python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 
 echo "✅ Training completed successfully!"
-echo "🔹 Results saved in gru_023/"
+echo "🔹 Results saved in gru_023/" 
