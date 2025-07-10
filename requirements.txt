@@ -1,11 +1,21 @@
-transformers>=4.30.0
-pandas>=1.5.0
-numpy>=1.24.0
-scikit-learn>=1.2.0
-tqdm>=4.65.0
-soundfile>=0.12.1
-librosa>=0.10.0
-matplotlib>=3.7.0
+# Core PyTorch packages (will be installed separately with CUDA support)
+# torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Deep Learning Framework
 pytorch-lightning>=2.0.0
-torchmetrics>=1.1.0
-Pillow>=9.0.0
+torchmetrics>=1.0.0
+
+# Audio Processing
+librosa>=0.10.0
+transformers>=4.30.0
+
+# Data Processing
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Utilities
+tqdm>=4.64.0
+scikit-learn>=1.1.0
+
+# Optional: for better performance
+accelerate>=0.20.0

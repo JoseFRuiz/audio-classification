@@ -54,3 +54,6 @@ embeddings/
 
 # SLURM output files
 slurm-*.out
+
+# Ignore Python virtual environment
+pytorch_env/

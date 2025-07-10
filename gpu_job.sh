@@ -21,7 +21,49 @@ echo "Date      = $(date)"
 echo "host      = $(hostname -s)"
 echo "Directory = $(pwd)"
 
-module load cuda/12.9.1
-module load pytorch
+# Set up error handling
+set -e  # Exit on any error
 
+module load cuda/12.9.1
+
+# Create and activate virtual environment
+echo "Creating virtual environment..."
+if [ -d "pytorch_env" ]; then
+    echo "Virtual environment already exists. Removing it..."
+    rm -rf pytorch_env
+fi
+
+python -m venv pytorch_env
+source pytorch_env/bin/activate
+
+# Upgrade pip in the virtual environment
+echo "Upgrading pip..."
+pip install --upgrade pip
+
+# Install compatible PyTorch version for B200 GPU
+echo "Installing compatible PyTorch version for B200 GPU..."
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Install other required packages
+echo "Installing other required packages..."
+pip install -r requirements.txt
+
+# Verify PyTorch installation and GPU compatibility
+echo "Testing GPU compatibility..."
+python test_gpu.py
+
+if [ $? -ne 0 ]; then
+    echo "❌ GPU test failed. Exiting..."
+    exit 1
+fi
+
+echo "🚀 Starting training..."
 python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+
+echo "✅ Training completed successfully!"
+echo "🔹 Results saved in gru_023/"
+
+# Clean up virtual environment (optional - comment out if you want to keep it)
+# echo "Cleaning up virtual environment..."
+# deactivate
+# rm -rf pytorch_env

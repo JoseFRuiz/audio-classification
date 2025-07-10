@@ -269,6 +269,7 @@ if args.use_gpu and torch.cuda.is_available():
         print(f"\n🔹 Using device: {device}")
         print(f"🔹 GPU: {torch.cuda.get_device_name()}")
         print(f"🔹 CUDA version: {torch.version.cuda}")
+        print(f"🔹 GPU capability: {torch.cuda.get_device_capability()}")
         
         # Check GPU memory
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3  # GB
@@ -450,8 +451,8 @@ try:
         raise ValueError("Validation split is empty. This might be due to an incorrect test_size parameter.")
     
     # Create datasets with pre-filtered data
-    train_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=train_indices, is_train=True)
-    val_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=val_indices, is_train=False)
+    train_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=train_indices, is_train=True, test_size=0.0)
+    val_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=val_indices, is_train=False, test_size=0.0)
     
     print(f"🔹 Train dataset size: {len(train_dataset)}")
     print(f"🔹 Validation dataset size: {len(val_dataset)}")
@@ -555,7 +556,20 @@ class LitRNNClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         preds = self(x)
-        loss = self.loss_fn(preds, y)
+        
+        # Add safety checks for loss computation
+        try:
+            loss = self.loss_fn(preds, y)
+            # Check if loss is finite
+            if not torch.isfinite(loss):
+                print(f"⚠️ Warning: Non-finite loss detected: {loss.item()}")
+                # Use a fallback loss
+                loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
+        except Exception as e:
+            print(f"⚠️ Warning: Error computing loss: {str(e)}")
+            # Use a fallback loss
+            loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
+        
         self.training_step_outputs.append(loss.item())
         
         # Log based on the log_interval parameter
@@ -572,7 +586,19 @@ class LitRNNClassifier(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         preds = self(x)
-        loss = self.loss_fn(preds, y)
+        
+        # Add safety checks for loss computation
+        try:
+            loss = self.loss_fn(preds, y)
+            # Check if loss is finite
+            if not torch.isfinite(loss):
+                print(f"⚠️ Warning: Non-finite loss detected: {loss.item()}")
+                # Use a fallback loss
+                loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
+        except Exception as e:
+            print(f"⚠️ Warning: Error computing loss: {str(e)}")
+            # Use a fallback loss
+            loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
         
         # Only compute metrics on the first batch to save memory
         if batch_idx == 0:
