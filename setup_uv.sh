@@ -16,10 +16,25 @@ fi
 if ! command -v uv &> /dev/null; then
     echo "🔹 Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    source ~/.cargo/env
+    
+    # Add uv to PATH
+    export PATH="$HOME/.local/bin:$PATH"
+    echo "🔹 Added uv to PATH"
 else
     echo "✅ uv already installed"
 fi
+
+# Ensure uv is in PATH
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv is not in PATH. Trying to add it..."
+    export PATH="$HOME/.local/bin:$PATH"
+    if ! command -v uv &> /dev/null; then
+        echo "❌ Failed to find uv. Please restart your shell or run: source $HOME/.local/bin/env"
+        exit 1
+    fi
+fi
+
+echo "✅ uv is available: $(which uv)"
 
 # Create a new uv project
 echo "🔹 Creating uv project..."
@@ -96,6 +111,8 @@ echo "🔹 Copying scripts to uv project..."
 cp ../run_experiment_gru_lightning.py .
 cp ../utils.py .
 cp ../test_gpu.py .
+
+cd ..
 
 echo "✅ uv setup complete!"
 echo "🔹 To run your script: cd audio-classification-uv && uv run python run_experiment_gru_lightning.py [args]"
