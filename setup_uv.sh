@@ -46,43 +46,25 @@ fi
 mkdir audio-classification-uv
 cd audio-classification-uv
 
-# Initialize uv project
-echo "🔹 Initializing uv project..."
-uv init --python 3.11
-
-# Create pyproject.toml with latest PyTorch
-echo "🔹 Creating pyproject.toml with latest PyTorch..."
-cat > pyproject.toml << 'EOF'
-[project]
-name = "audio-classification"
-version = "0.1.0"
-description = "Audio classification with B200 GPU support"
-requires-python = ">=3.11"
-dependencies = [
-    "torch>=2.2.0",
-    "torchvision>=0.17.0",
-    "torchaudio>=2.2.0",
-    "pytorch-lightning>=2.2.0",
-    "torchmetrics>=1.3.0",
-    "transformers>=4.37.0",
-    "librosa>=0.10.0",
-    "tqdm>=4.66.0",
-    "pandas>=2.1.0",
-    "numpy>=1.24.0",
-    "scikit-learn>=1.3.0",
-]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.uv]
-dev-dependencies = []
+# Create a simple requirements.txt instead of pyproject.toml
+echo "🔹 Creating requirements.txt with latest PyTorch..."
+cat > requirements.txt << 'EOF'
+torch>=2.2.0
+torchvision>=0.17.0
+torchaudio>=2.2.0
+pytorch-lightning>=2.2.0
+torchmetrics>=1.3.0
+transformers>=4.37.0
+librosa>=0.10.0
+tqdm>=4.66.0
+pandas>=2.1.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
 EOF
 
 # Install dependencies with uv
 echo "🔹 Installing dependencies with uv..."
-uv sync
+uv pip install -r requirements.txt
 
 # Test PyTorch installation
 echo "🔹 Testing PyTorch installation..."
