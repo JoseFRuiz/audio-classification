@@ -32,6 +32,7 @@ Thumbs.db
 multi_gpu.out
 multi_gpu2.out
 multi_gpu3.out
+*.out
 
 # Core dump files (from crashes)
 core.*
