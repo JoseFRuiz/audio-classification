@@ -6,15 +6,16 @@
 #SBATCH --mail-user=jfruizmu@unal.edu.co
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --ntasks-per-socket=1
-#SBATCH --mem=180gb
+#SBATCH --mem=32gb
 #SBATCH --distribution=cyclic:cyclic
-#SBATCH --partition=hpg-cpu
+#SBATCH --partition=hpg-b200
+#SBATCH --gres=gpu:1
 #SBATCH --qos=azare
 #SBATCH --account=azare
-#SBATCH --time=96:00:00
+#SBATCH --time=24:00:00
 
 echo "Date      = $(date)"
 echo "host      = $(hostname -s)"
@@ -44,7 +45,7 @@ print('✅ PyTorch installation verified!')
 "
 
 echo "🚀 Starting training..."
-uv run python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+uv run python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 
 echo "✅ Training completed successfully!"
 echo "🔹 Results saved in gru_023/"
