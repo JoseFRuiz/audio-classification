@@ -37,7 +37,7 @@ echo "✅ uv is available: $(which uv)"
 
 # Install dependencies with uv
 echo "🔹 Installing dependencies with uv..."
-uv sync
+uv pip install torch torchvision torchaudio pytorch-lightning torchmetrics transformers librosa tqdm pandas numpy scikit-learn accelerate
 
 # Test PyTorch installation
 echo "🔹 Testing PyTorch installation..."
