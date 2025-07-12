@@ -23,25 +23,28 @@ echo "Directory = $(pwd)"
 # Set up error handling
 set -e  # Exit on any error
 
-# Activate existing conda environment
-echo "🔹 Activating existing audio-classification conda environment..."
-source ~/anaconda3/etc/profile.d/conda.sh
-conda activate audio-classification
+# Check if uv is available
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv is not available. Please install uv first."
+    exit 1
+fi
 
-# Check current Python version and PyTorch installation
 echo "🔹 Current Python version:"
-python --version
+uv run python --version
 
 echo "🔹 Checking PyTorch installation..."
-python -c "
+uv run python -c "
 import torch
 print(f'PyTorch version: {torch.__version__}')
 print(f'CUDA available: {torch.cuda.is_available()}')
+if torch.cuda.is_available():
+    print(f'CUDA version: {torch.version.cuda}')
+    print(f'GPU device: {torch.cuda.get_device_name()}')
 print('✅ PyTorch installation verified!')
 "
 
 echo "🚀 Starting training..."
-python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+uv run python run_experiment_gru_lightning.py --save_dir "gru_023" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 50 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 
 echo "✅ Training completed successfully!"
 echo "🔹 Results saved in gru_023/"
