@@ -573,6 +573,8 @@ class LitRNNClassifier(pl.LightningModule):
             # Use a fallback loss
             loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
         
+        # Debug print for loss, preds, and labels
+        print(f"Batch {batch_idx} - Loss: {loss.item()} - preds min/max: {preds.min().item()}/{preds.max().item()} - labels sum: {y.sum().item()}")
         self.training_step_outputs.append(loss.item())
         
         # Log based on the log_interval parameter
