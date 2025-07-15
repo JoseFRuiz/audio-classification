@@ -24,10 +24,6 @@ echo "Directory = $(pwd)"
 # Set up error handling
 set -e  # Exit on any error
 
-# Load the cluster's PyTorch module (which is compatible with B200)
-echo "🔹 Loading cluster PyTorch module..."
-module load pytorch
-
 # Check if uv is available for other dependencies
 if ! command -v uv &> /dev/null; then
     echo "❌ uv is not available. Please install uv first."
@@ -35,28 +31,13 @@ if ! command -v uv &> /dev/null; then
 fi
 
 echo "🔹 Current Python version:"
-python --version
+uv python --version
 
-echo "🔹 Checking PyTorch installation..."
-python -c "
-import torch
-print(f'PyTorch version: {torch.__version__}')
-print(f'CUDA available: {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    print(f'CUDA version: {torch.version.cuda}')
-    print(f'GPU device: {torch.cuda.get_device_name()}')
-    print(f'GPU capability: {torch.cuda.get_device_capability()}')
-    # Test GPU functionality
-    try:
-        x = torch.randn(10, 10).cuda()
-        y = torch.randn(10, 10).cuda()
-        z = torch.mm(x, y)
-        print('✅ GPU test successful!')
-    except Exception as e:
-        print(f'❌ GPU test failed: {e}')
-else:
-    print('❌ CUDA not available')
-"
+echo "🔹 Checking PyTorch installation (WITHOUT module load)..."
+uv run check_pytorch_versions.py
+
+echo "🔹 Testing GPU compatibility (WITHOUT module load)..."
+uv run check_gpu_compatibility.py
 
 # Install other dependencies with uv (excluding PyTorch)
 echo "🔹 Installing other dependencies with uv..."
