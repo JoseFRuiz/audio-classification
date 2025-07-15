@@ -698,10 +698,26 @@ num_sanity_val_steps = 0 if len(val_dataset) < adjusted_batch_size else 2
 
 # Configure trainer based on device
 if args.use_gpu and torch.cuda.is_available():
-    trainer_config = {
-        'accelerator': 'gpu',
-        'devices': 1
-    }
+    try:
+        # Test GPU compatibility first
+        test_tensor = torch.randn(10, 10).cuda()
+        test_gru = torch.nn.GRU(10, 5, 1, batch_first=True).cuda()
+        test_input = torch.randn(2, 3, 10).cuda()
+        test_output, _ = test_gru(test_input)
+        print("✅ GPU compatibility test passed")
+        trainer_config = {
+            'accelerator': 'gpu',
+            'devices': 1
+        }
+    except Exception as e:
+        print(f"⚠️ GPU compatibility test failed: {e}")
+        print("🔹 Falling back to CPU training")
+        trainer_config = {
+            'accelerator': 'cpu',
+            'devices': 1
+        }
+        device = torch.device("cpu")
+        args.use_gpu = False
 else:
     trainer_config = {
         'accelerator': 'cpu',
