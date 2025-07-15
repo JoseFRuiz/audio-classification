@@ -31,7 +31,7 @@ if ! command -v uv &> /dev/null; then
 fi
 
 echo "🔹 Current Python version:"
-uv python -c "import sys; print(f'Python {sys.version}')"
+uv run python -c "import sys; print(f'Python {sys.version}')"
 
 echo "🔹 Checking PyTorch installation (WITHOUT module load)..."
 uv run check_pytorch_versions.py
