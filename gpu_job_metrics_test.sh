@@ -44,4 +44,4 @@ echo "🔹 Installing other dependencies with uv..."
 uv pip install pytorch-lightning torchmetrics transformers librosa tqdm pandas numpy scikit-learn accelerate
 
 echo "🚀 Starting training with improved metrics computation..."
-uv run run_experiment_gru_lightning.py --save_dir "gru_025" --epochs 50 --eval_interval 5 --log_interval 5 --lr 1e-3 --batch_size 32 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+uv run run_experiment_gru_lightning.py --save_dir "gru_025" --epochs 50 --eval_interval 5 --log_interval 5 --lr 1e-3 --batch_size 32 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
