@@ -58,9 +58,42 @@ else:
     print('❌ CUDA not available')
 "
 
-# Install other dependencies with uv (excluding PyTorch)
-echo "🔹 Installing other dependencies with uv..."
-uv pip install pytorch-lightning torchmetrics transformers librosa tqdm pandas numpy scikit-learn accelerate
+# Check which dependencies are already available and install missing ones
+echo "🔹 Checking available dependencies..."
+python -c "
+import sys
+missing_deps = []
+
+# Check required dependencies
+deps_to_check = [
+    ('pytorch_lightning', 'pytorch-lightning'),
+    ('torchmetrics', 'torchmetrics'),
+    ('transformers', 'transformers'),
+    ('librosa', 'librosa'),
+    ('tqdm', 'tqdm'),
+    ('pandas', 'pandas'),
+    ('numpy', 'numpy'),
+    ('sklearn', 'scikit-learn'),
+    ('accelerate', 'accelerate')
+]
+
+for module_name, pip_name in deps_to_check:
+    try:
+        __import__(module_name)
+        print(f'✅ {module_name} is available')
+    except ImportError:
+        print(f'❌ {module_name} is missing')
+        missing_deps.append(pip_name)
+
+if missing_deps:
+    print(f'\n🔹 Missing dependencies: {missing_deps}')
+    print('\n🔹 Installing missing dependencies with uv...')
+    import subprocess
+    subprocess.run(['uv', 'pip', 'install'] + missing_deps, check=True)
+    print('✅ Dependencies installed successfully!')
+else:
+    print('\n✅ All dependencies are already available!')
+"
 
 echo "🚀 Starting training with improved metrics computation..."
 python run_experiment_gru_lightning.py --save_dir "gru_025" --epochs 50 --eval_interval 5 --log_interval 5 --lr 1e-3 --batch_size 32 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
