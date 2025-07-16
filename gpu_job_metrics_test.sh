@@ -24,6 +24,10 @@ echo "Directory = $(pwd)"
 # Set up error handling
 set -e  # Exit on any error
 
+# Load the cluster's PyTorch module (which is compatible with B200)
+echo "🔹 Loading cluster PyTorch module..."
+module load pytorch
+
 # Check if uv is available for other dependencies
 if ! command -v uv &> /dev/null; then
     echo "❌ uv is not available. Please install uv first."
@@ -31,17 +35,32 @@ if ! command -v uv &> /dev/null; then
 fi
 
 echo "🔹 Current Python version:"
-uv run python -c "import sys; print(f'Python {sys.version}')"
+python --version
 
-echo "🔹 Checking PyTorch installation (WITHOUT module load)..."
-uv run check_pytorch_versions.py
-
-echo "🔹 Testing GPU compatibility (WITHOUT module load)..."
-uv run check_gpu_compatibility.py
+echo "🔹 Checking PyTorch installation..."
+python -c "
+import torch
+print(f'PyTorch version: {torch.__version__}')
+print(f'CUDA available: {torch.cuda.is_available()}')
+if torch.cuda.is_available():
+    print(f'CUDA version: {torch.version.cuda}')
+    print(f'GPU device: {torch.cuda.get_device_name()}')
+    print(f'GPU capability: {torch.cuda.get_device_capability()}')
+    # Test GPU functionality
+    try:
+        x = torch.randn(10, 10).cuda()
+        y = torch.randn(10, 10).cuda()
+        z = torch.mm(x, y)
+        print('✅ GPU test successful!')
+    except Exception as e:
+        print(f'❌ GPU test failed: {e}')
+else:
+    print('❌ CUDA not available')
+"
 
 # Install other dependencies with uv (excluding PyTorch)
 echo "🔹 Installing other dependencies with uv..."
 uv pip install pytorch-lightning torchmetrics transformers librosa tqdm pandas numpy scikit-learn accelerate
 
 echo "🚀 Starting training with improved metrics computation..."
-uv run run_experiment_gru_lightning.py --save_dir "gru_025" --epochs 50 --eval_interval 5 --log_interval 5 --lr 1e-3 --batch_size 32 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+python run_experiment_gru_lightning.py --save_dir "gru_025" --epochs 50 --eval_interval 5 --log_interval 5 --lr 1e-3 --batch_size 32 --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
