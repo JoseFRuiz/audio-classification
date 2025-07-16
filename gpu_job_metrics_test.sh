@@ -6,10 +6,10 @@
 #SBATCH --mail-user=jfruizmu@unal.edu.co
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --ntasks-per-socket=1
-#SBATCH --mem=180gb
+#SBATCH --mem=16gb
 #SBATCH --distribution=cyclic:cyclic
 #SBATCH --partition=hpg-b200
 #SBATCH --gres=gpu:1
