@@ -120,13 +120,10 @@ class TrainEvalMetricsCallback(Callback):
         device = pl_module.device
         loss_fn = pl_module.loss_fn
 
-        # Create temporary metrics for training data
-        f1 = MultilabelF1Score(num_labels=pl_module.f1.num_labels, average="macro").to(device)
-        map_metric = MultilabelAveragePrecision(num_labels=pl_module.map.num_labels, average="macro").to(device)
-        auc = MultilabelAUROC(num_labels=pl_module.auc.num_labels, average="macro").to(device)
-
         total_loss = 0.0
         total_samples = 0
+        all_preds = []
+        all_targets = []
 
         with torch.no_grad():
             for x, y in self.train_loader:
@@ -136,15 +133,9 @@ class TrainEvalMetricsCallback(Callback):
                 total_loss += loss.item() * x.size(0)
                 total_samples += x.size(0)
                 
-                # Update metrics
-                try:
-                    preds_safe = torch.clamp(preds, min=1e-7, max=1.0-1e-7)
-                    y_safe = y.int()
-                    f1.update(preds_safe, y_safe)
-                    map_metric.update(preds_safe, y_safe)
-                    auc.update(preds_safe, y_safe)
-                except Exception as e:
-                    print(f"⚠️ Warning: Error updating train metrics: {str(e)}")
+                # Store predictions and targets
+                all_preds.append(preds.detach())
+                all_targets.append(y.detach())
 
         if total_samples == 0:
             print("⚠️ Warning: No training samples found for metrics computation")
@@ -154,9 +145,23 @@ class TrainEvalMetricsCallback(Callback):
 
         # Compute and log final metrics
         try:
-            train_f1 = f1.compute()
-            train_map = map_metric.compute()
-            train_auc = auc.compute()
+            # Concatenate all predictions and targets
+            all_preds = torch.cat(all_preds, dim=0)
+            all_targets = torch.cat(all_targets, dim=0)
+            
+            # Ensure predictions are in valid range
+            all_preds = torch.clamp(all_preds, min=1e-7, max=1.0-1e-7)
+            all_targets = all_targets.int()
+            
+            # Create temporary metrics for training data
+            f1 = MultilabelF1Score(num_labels=pl_module.f1.num_labels, average="macro").to(device)
+            map_metric = MultilabelAveragePrecision(num_labels=pl_module.map.num_labels, average="macro").to(device)
+            auc = MultilabelAUROC(num_labels=pl_module.auc.num_labels, average="macro").to(device)
+            
+            # Compute metrics
+            train_f1 = f1(all_preds, all_targets)
+            train_map = map_metric(all_preds, all_targets)
+            train_auc = auc(all_preds, all_targets)
             
             # Log metrics using the trainer's logger
             trainer.logger.log_metrics({
@@ -167,8 +172,13 @@ class TrainEvalMetricsCallback(Callback):
                 "train_auc_eval": train_auc.item()
             }, step=trainer.current_epoch)
             
+            print(f"✅ Epoch {trainer.current_epoch}: train_f1={train_f1:.4f}, train_map={train_map:.4f}, train_auc={train_auc:.4f}")
+            
         except Exception as e:
             print(f"⚠️ Warning: Error computing train metrics: {str(e)}")
+            print(f"   Predictions shape: {all_preds.shape}, Targets shape: {all_targets.shape}")
+            print(f"   Predictions range: [{all_preds.min():.4f}, {all_preds.max():.4f}]")
+            print(f"   Targets sum: {all_targets.sum()}, Targets total: {all_targets.numel()}")
             # Log only the loss as fallback
             trainer.logger.log_metrics({
                 "epoch": trainer.current_epoch,
@@ -574,47 +584,50 @@ class LitRNNClassifier(pl.LightningModule):
         # Log validation loss
         self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
         
-        # Compute metrics on all validation batches
-        try:
-            # Ensure labels are valid for metrics computation
-            if y.numel() > 0:
-                # Use smaller precision to avoid overflow
-                preds_safe = torch.clamp(preds, min=1e-7, max=1.0-1e-7)
-                y_safe = y.int()
-                
-                # Update metrics (they accumulate across batches)
-                self.f1.update(preds_safe, y_safe)
-                self.map.update(preds_safe, y_safe)
-                self.auc.update(preds_safe, y_safe)
-                
-        except Exception as e:
-            print(f"⚠️ Warning: Error updating validation metrics: {str(e)}")
+        # Store predictions and targets for epoch-end computation
+        if not hasattr(self, 'val_preds'):
+            self.val_preds = []
+            self.val_targets = []
+        
+        self.val_preds.append(preds.detach())
+        self.val_targets.append(y.detach())
         
         return loss
 
     def on_validation_epoch_end(self):
         # Compute and log final metrics for the epoch
-        try:
-            val_f1 = self.f1.compute()
-            val_map = self.map.compute()
-            val_auc = self.auc.compute()
-            
-            # Log the metrics
-            self.log('val_f1', val_f1, on_step=False, on_epoch=True, prog_bar=True)
-            self.log('val_map', val_map, on_step=False, on_epoch=True, prog_bar=True)
-            self.log('val_auc', val_auc, on_step=False, on_epoch=True, prog_bar=True)
-            
-            # Reset metrics for next epoch
-            self.f1.reset()
-            self.map.reset()
-            self.auc.reset()
-            
-        except Exception as e:
-            print(f"⚠️ Warning: Error computing final validation metrics: {str(e)}")
-            # Reset metrics even if computation failed
-            self.f1.reset()
-            self.map.reset()
-            self.auc.reset()
+        if hasattr(self, 'val_preds') and len(self.val_preds) > 0:
+            try:
+                # Concatenate all predictions and targets
+                all_preds = torch.cat(self.val_preds, dim=0)
+                all_targets = torch.cat(self.val_targets, dim=0)
+                
+                # Ensure predictions are in valid range
+                all_preds = torch.clamp(all_preds, min=1e-7, max=1.0-1e-7)
+                all_targets = all_targets.int()
+                
+                # Compute metrics
+                val_f1 = self.f1(all_preds, all_targets)
+                val_map = self.map(all_preds, all_targets)
+                val_auc = self.auc(all_preds, all_targets)
+                
+                # Log the metrics
+                self.log('val_f1', val_f1, on_step=False, on_epoch=True, prog_bar=True)
+                self.log('val_map', val_map, on_step=False, on_epoch=True, prog_bar=True)
+                self.log('val_auc', val_auc, on_step=False, on_epoch=True, prog_bar=True)
+                
+                print(f"✅ Epoch {self.current_epoch}: val_f1={val_f1:.4f}, val_map={val_map:.4f}, val_auc={val_auc:.4f}")
+                
+            except Exception as e:
+                print(f"⚠️ Warning: Error computing validation metrics: {str(e)}")
+                print(f"   Predictions shape: {all_preds.shape}, Targets shape: {all_targets.shape}")
+                print(f"   Predictions range: [{all_preds.min():.4f}, {all_preds.max():.4f}]")
+                print(f"   Targets sum: {all_targets.sum()}, Targets total: {all_targets.numel()}")
+        
+        # Clear stored predictions and targets
+        if hasattr(self, 'val_preds'):
+            self.val_preds.clear()
+            self.val_targets.clear()
 
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)

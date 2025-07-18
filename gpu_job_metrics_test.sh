@@ -95,5 +95,5 @@ else:
     print('\n✅ All dependencies are already available!')
 "
 
-echo "🚀 Starting training with improved metrics computation..."
-python run_experiment_gru_lightning.py --save_dir "gru_026" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 1000 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+echo "🚀 Starting training with fixed metrics computation..."
+python run_experiment_gru_lightning.py --save_dir "gru_027" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 1000 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
