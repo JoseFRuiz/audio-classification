@@ -119,12 +119,12 @@ class TrainEvalMetricsCallback(Callback):
         pl_module.eval()
         device = pl_module.device
         loss_fn = pl_module.loss_fn
-        f1 = pl_module.f1.to(device)
-        map_metric = pl_module.map.to(device)
-        auc = pl_module.auc.to(device)
 
-        all_preds = []
-        all_targets = []
+        # Create temporary metrics for training data
+        f1 = MultilabelF1Score(num_labels=pl_module.f1.num_labels, average="macro").to(device)
+        map_metric = MultilabelAveragePrecision(num_labels=pl_module.map.num_labels, average="macro").to(device)
+        auc = MultilabelAUROC(num_labels=pl_module.auc.num_labels, average="macro").to(device)
+
         total_loss = 0.0
         total_samples = 0
 
@@ -134,73 +134,41 @@ class TrainEvalMetricsCallback(Callback):
                 preds = pl_module(x)
                 loss = loss_fn(preds, y)
                 total_loss += loss.item() * x.size(0)
-                all_preds.append(preds)
-                all_targets.append(y)
                 total_samples += x.size(0)
+                
+                # Update metrics
+                try:
+                    preds_safe = torch.clamp(preds, min=1e-7, max=1.0-1e-7)
+                    y_safe = y.int()
+                    f1.update(preds_safe, y_safe)
+                    map_metric.update(preds_safe, y_safe)
+                    auc.update(preds_safe, y_safe)
+                except Exception as e:
+                    print(f"⚠️ Warning: Error updating train metrics: {str(e)}")
 
         if total_samples == 0:
             print("⚠️ Warning: No training samples found for metrics computation")
             return
 
-        all_preds = torch.cat(all_preds)
-        all_targets = torch.cat(all_targets)
         avg_loss = total_loss / total_samples
 
-        # Add safety checks for metrics computation
+        # Compute and log final metrics
         try:
-            # Ensure predictions and targets are valid
-            if all_preds.numel() > 0 and all_targets.numel() > 0:
-                # Clamp predictions to avoid numerical issues
-                all_preds_safe = torch.clamp(all_preds, min=1e-7, max=1.0-1e-7)
-                all_targets_safe = all_targets.int()
-                
-                # Check for valid label distribution
-                if all_targets_safe.sum() > 0 and all_targets_safe.sum() < all_targets_safe.numel():
-                    # Compute metrics one by one to catch individual errors
-                    try:
-                        train_f1 = f1(all_preds_safe, all_targets_safe).item()
-                        if not np.isnan(train_f1) and not np.isinf(train_f1):
-                            trainer.logger.log_metrics({
-                                "epoch": trainer.current_epoch,
-                                "train_loss_eval": avg_loss,
-                                "train_f1_eval": train_f1
-                            }, step=trainer.current_epoch)
-                    except Exception as e:
-                        print(f"⚠️ Warning: Error computing train F1 score: {str(e)}")
-                    
-                    try:
-                        train_map = map_metric(all_preds_safe, all_targets_safe).item()
-                        if not np.isnan(train_map) and not np.isinf(train_map):
-                            trainer.logger.log_metrics({
-                                "train_map_eval": train_map
-                            }, step=trainer.current_epoch)
-                    except Exception as e:
-                        print(f"⚠️ Warning: Error computing train MAP score: {str(e)}")
-                    
-                    try:
-                        train_auc = auc(all_preds_safe, all_targets_safe).item()
-                        if not np.isnan(train_auc) and not np.isinf(train_auc):
-                            trainer.logger.log_metrics({
-                                "train_auc_eval": train_auc
-                            }, step=trainer.current_epoch)
-                    except Exception as e:
-                        print(f"⚠️ Warning: Error computing train AUC score: {str(e)}")
-                else:
-                    print(f"⚠️ Warning: Invalid label distribution in training data")
-                    # Log only the loss
-                    trainer.logger.log_metrics({
-                        "epoch": trainer.current_epoch,
-                        "train_loss_eval": avg_loss
-                    }, step=trainer.current_epoch)
-            else:
-                print(f"⚠️ Warning: Empty predictions or targets")
-                # Log only the loss
-                trainer.logger.log_metrics({
-                    "epoch": trainer.current_epoch,
-                    "train_loss_eval": avg_loss
-                }, step=trainer.current_epoch)
+            train_f1 = f1.compute()
+            train_map = map_metric.compute()
+            train_auc = auc.compute()
+            
+            # Log metrics using the trainer's logger
+            trainer.logger.log_metrics({
+                "epoch": trainer.current_epoch,
+                "train_loss_eval": avg_loss,
+                "train_f1_eval": train_f1.item(),
+                "train_map_eval": train_map.item(),
+                "train_auc_eval": train_auc.item()
+            }, step=trainer.current_epoch)
+            
         except Exception as e:
-            print(f"⚠️ Warning: Error in train metrics computation: {str(e)}")
+            print(f"⚠️ Warning: Error computing train metrics: {str(e)}")
             # Log only the loss as fallback
             trainer.logger.log_metrics({
                 "epoch": trainer.current_epoch,
@@ -573,8 +541,6 @@ class LitRNNClassifier(pl.LightningModule):
             # Use a fallback loss
             loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
         
-        # Debug print for loss, preds, and labels
-        print(f"Batch {batch_idx} - Loss: {loss.item()} - preds min/max: {preds.min().item()}/{preds.max().item()} - labels sum: {y.sum().item()}")
         self.training_step_outputs.append(loss.item())
         
         # Log based on the log_interval parameter
@@ -605,49 +571,50 @@ class LitRNNClassifier(pl.LightningModule):
             # Use a fallback loss
             loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
         
-        # Only compute metrics on the first batch to save memory
-        if batch_idx == 0:
-            self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
-            
-            # Add safety checks for metrics computation
-            try:
-                # Ensure labels are valid for metrics computation
-                if y.numel() > 0 and torch.any(y >= 0) and torch.any(y <= 1):
-                    # Use smaller precision to avoid overflow
-                    preds_safe = torch.clamp(preds, min=1e-7, max=1.0-1e-7)
-                    y_safe = y.int()
-                    
-                    # Check for valid label distribution
-                    if y_safe.sum() > 0 and y_safe.sum() < y_safe.numel():
-                        # Compute metrics one by one to catch individual errors
-                        try:
-                            f1_score = self.f1(preds_safe, y_safe)
-                            if not torch.isnan(f1_score) and not torch.isinf(f1_score):
-                                self.log('val_f1', f1_score, on_step=False, on_epoch=True)
-                        except Exception as e:
-                            print(f"⚠️ Warning: Error computing F1 score: {str(e)}")
-                        
-                        try:
-                            map_score = self.map(preds_safe, y_safe)
-                            if not torch.isnan(map_score) and not torch.isinf(map_score):
-                                self.log('val_map', map_score, on_step=False, on_epoch=True)
-                        except Exception as e:
-                            print(f"⚠️ Warning: Error computing MAP score: {str(e)}")
-                        
-                        try:
-                            auc_score = self.auc(preds_safe, y_safe)
-                            if not torch.isnan(auc_score) and not torch.isinf(auc_score):
-                                self.log('val_auc', auc_score, on_step=False, on_epoch=True)
-                        except Exception as e:
-                            print(f"⚠️ Warning: Error computing AUC score: {str(e)}")
-                    else:
-                        print(f"⚠️ Warning: Invalid label distribution in validation batch {batch_idx}")
-                        
-                else:
-                    print(f"⚠️ Warning: Invalid labels detected in validation batch {batch_idx}")
-            except Exception as e:
-                print(f"⚠️ Warning: Error computing validation metrics: {str(e)}")
+        # Log validation loss
+        self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        
+        # Compute metrics on all validation batches
+        try:
+            # Ensure labels are valid for metrics computation
+            if y.numel() > 0:
+                # Use smaller precision to avoid overflow
+                preds_safe = torch.clamp(preds, min=1e-7, max=1.0-1e-7)
+                y_safe = y.int()
+                
+                # Update metrics (they accumulate across batches)
+                self.f1.update(preds_safe, y_safe)
+                self.map.update(preds_safe, y_safe)
+                self.auc.update(preds_safe, y_safe)
+                
+        except Exception as e:
+            print(f"⚠️ Warning: Error updating validation metrics: {str(e)}")
+        
         return loss
+
+    def on_validation_epoch_end(self):
+        # Compute and log final metrics for the epoch
+        try:
+            val_f1 = self.f1.compute()
+            val_map = self.map.compute()
+            val_auc = self.auc.compute()
+            
+            # Log the metrics
+            self.log('val_f1', val_f1, on_step=False, on_epoch=True, prog_bar=True)
+            self.log('val_map', val_map, on_step=False, on_epoch=True, prog_bar=True)
+            self.log('val_auc', val_auc, on_step=False, on_epoch=True, prog_bar=True)
+            
+            # Reset metrics for next epoch
+            self.f1.reset()
+            self.map.reset()
+            self.auc.reset()
+            
+        except Exception as e:
+            print(f"⚠️ Warning: Error computing final validation metrics: {str(e)}")
+            # Reset metrics even if computation failed
+            self.f1.reset()
+            self.map.reset()
+            self.auc.reset()
 
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)
@@ -690,7 +657,7 @@ csv_logger = CSVLogger(
     version=None,  # Don't create new version directories
     flush_logs_every_n_steps=args.log_interval  # Use log_interval parameter
 )
-# train_eval_callback = TrainEvalMetricsCallback(train_loader)  # Temporarily disabled due to metrics computation issues
+train_eval_callback = TrainEvalMetricsCallback(train_loader)  # Re-enabled for training metrics
 weight_norm_callback = WeightNormCallback()  # Add weight norm callback
 
 # Disable sanity check if validation dataset is too small
@@ -726,7 +693,7 @@ else:
 
 trainer = pl.Trainer(
     max_epochs=args.epochs,
-    callbacks=[checkpoint_callback, early_stop_callback, weight_norm_callback],  # Removed train_eval_callback temporarily
+    callbacks=[checkpoint_callback, early_stop_callback, weight_norm_callback, train_eval_callback],  # Re-enabled train_eval_callback
     default_root_dir=args.save_dir,
     logger=csv_logger,
     check_val_every_n_epoch=args.eval_interval,
