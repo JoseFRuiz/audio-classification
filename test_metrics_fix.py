@@ -10,7 +10,22 @@ import numpy as np
 
 def check_metrics_file(metrics_dir):
     """Check if metrics.csv exists and contains the expected columns"""
+    # First try the direct path
     metrics_file = os.path.join(metrics_dir, "metrics", "metrics.csv")
+    
+    # If not found, look for version subdirectories
+    if not os.path.exists(metrics_file):
+        metrics_base_dir = os.path.join(metrics_dir, "metrics")
+        if os.path.exists(metrics_base_dir):
+            # Look for version subdirectories
+            for item in os.listdir(metrics_base_dir):
+                version_path = os.path.join(metrics_base_dir, item)
+                if os.path.isdir(version_path):
+                    potential_metrics_file = os.path.join(version_path, "metrics.csv")
+                    if os.path.exists(potential_metrics_file):
+                        metrics_file = potential_metrics_file
+                        print(f"🔍 Found metrics file in version subdirectory: {metrics_file}")
+                        break
     
     if not os.path.exists(metrics_file):
         print(f"❌ Metrics file not found: {metrics_file}")
