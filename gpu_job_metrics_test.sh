@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --ntasks-per-socket=1
-#SBATCH --mem=16gb
+#SBATCH --mem=32gb
 #SBATCH --distribution=cyclic:cyclic
 #SBATCH --partition=hpg-b200
 #SBATCH --gres=gpu:1
