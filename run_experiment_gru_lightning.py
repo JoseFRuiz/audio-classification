@@ -511,6 +511,9 @@ class LitRNNClassifier(pl.LightningModule):
             nn.Sigmoid()
         )
         
+        # Initialize weights properly to avoid zero predictions
+        self._init_weights()
+        
         # Initialize loss function based on the argument
         if loss_fn == "bce":
             self.loss_fn = nn.BCELoss()
@@ -532,10 +535,47 @@ class LitRNNClassifier(pl.LightningModule):
     def forward(self, x):
         _, h_n = self.gru(x)
         h_n = h_n[-1]
-        return self.fc(h_n)
+        output = self.fc(h_n)
+        
+        # Add safety check for output
+        if torch.all(output == 0):
+            print(f"⚠️ Warning: All predictions are zero! Input shape: {x.shape}, Output shape: {output.shape}")
+            print(f"   GRU output range: [{h_n.min():.4f}, {h_n.max():.4f}]")
+            print(f"   FC output before sigmoid range: [{self.fc[:-1](h_n).min():.4f}, {self.fc[:-1](h_n).max():.4f}]")
+        
+        return output
+
+    def _init_weights(self):
+        """Initialize weights to avoid zero predictions"""
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+            elif isinstance(module, nn.GRU):
+                for name, param in module.named_parameters():
+                    if 'weight' in name:
+                        nn.init.xavier_uniform_(param)
+                    elif 'bias' in name:
+                        nn.init.zeros_(param)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
+        
+        # Validate input data
+        if batch_idx == 0:  # Only check first batch to avoid spam
+            print(f"🔍 Training batch {batch_idx}: x shape={x.shape}, y shape={y.shape}")
+            print(f"   x range: [{x.min():.4f}, {x.max():.4f}], y range: [{y.min():.4f}, {y.max():.4f}]")
+            print(f"   y sum: {y.sum().item()}, y total: {y.numel()}")
+            
+            # Check for data corruption
+            if torch.any(torch.isnan(x)) or torch.any(torch.isinf(x)):
+                print("❌ ERROR: Input data contains NaN or Inf values!")
+            if torch.any(torch.isnan(y)) or torch.any(torch.isinf(y)):
+                print("❌ ERROR: Target data contains NaN or Inf values!")
+            if y.sum() > y.numel():
+                print("❌ ERROR: Target sum exceeds total elements (data corruption)!")
+        
         preds = self(x)
         
         # Add safety checks for loss computation
@@ -566,6 +606,21 @@ class LitRNNClassifier(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
+        
+        # Validate input data
+        if batch_idx == 0:  # Only check first batch to avoid spam
+            print(f"🔍 Validation batch {batch_idx}: x shape={x.shape}, y shape={y.shape}")
+            print(f"   x range: [{x.min():.4f}, {x.max():.4f}], y range: [{y.min():.4f}, {y.max():.4f}]")
+            print(f"   y sum: {y.sum().item()}, y total: {y.numel()}")
+            
+            # Check for data corruption
+            if torch.any(torch.isnan(x)) or torch.any(torch.isinf(x)):
+                print("❌ ERROR: Validation input data contains NaN or Inf values!")
+            if torch.any(torch.isnan(y)) or torch.any(torch.isinf(y)):
+                print("❌ ERROR: Validation target data contains NaN or Inf values!")
+            if y.sum() > y.numel():
+                print("❌ ERROR: Validation target sum exceeds total elements (data corruption)!")
+        
         preds = self(x)
         
         # Add safety checks for loss computation
@@ -602,9 +657,28 @@ class LitRNNClassifier(pl.LightningModule):
                 all_preds = torch.cat(self.val_preds, dim=0)
                 all_targets = torch.cat(self.val_targets, dim=0)
                 
+                # Validate data before computing metrics
+                if torch.any(torch.isnan(all_preds)) or torch.any(torch.isinf(all_preds)):
+                    print("❌ ERROR: Validation predictions contain NaN or Inf values!")
+                    return
+                
+                if torch.any(torch.isnan(all_targets)) or torch.any(torch.isinf(all_targets)):
+                    print("❌ ERROR: Validation targets contain NaN or Inf values!")
+                    return
+                
+                # Check for data corruption
+                if all_targets.sum() > all_targets.numel():
+                    print(f"❌ ERROR: Validation target sum ({all_targets.sum()}) exceeds total elements ({all_targets.numel()})!")
+                    return
+                
                 # Ensure predictions are in valid range
                 all_preds = torch.clamp(all_preds, min=1e-7, max=1.0-1e-7)
                 all_targets = all_targets.int()
+                
+                # Check if we have any positive labels
+                if all_targets.sum() == 0:
+                    print("⚠️ Warning: No positive labels in validation set - skipping metrics computation")
+                    return
                 
                 # Compute metrics
                 val_f1 = self.f1(all_preds, all_targets)
