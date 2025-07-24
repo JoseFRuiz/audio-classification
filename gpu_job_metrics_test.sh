@@ -26,7 +26,8 @@ set -e  # Exit on any error
 
 # Load the cluster's PyTorch module (which is compatible with B200)
 echo "🔹 Loading cluster PyTorch module..."
-module load pytorch
+module load cuda/12.9.1
+module load pytorch/2.2.0
 
 # Check if uv is available for other dependencies
 if ! command -v uv &> /dev/null; then
