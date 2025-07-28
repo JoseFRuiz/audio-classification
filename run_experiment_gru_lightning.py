@@ -25,6 +25,7 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_026" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-2 --batch_size 1000 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_027" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 1000 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_028" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+# python run_experiment_gru_lightning.py --save_dir "gru_029" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 
 import os
 import argparse
@@ -458,25 +459,9 @@ except Exception as e:
     raise
 
 # Create dataloaders
-# Adjust batch size if it's too large for the dataset
-adjusted_batch_size = min(args.batch_size, len(train_dataset), len(val_dataset))
-if adjusted_batch_size != args.batch_size:
-    print(f"⚠️ Warning: Batch size adjusted from {args.batch_size} to {adjusted_batch_size} due to dataset size")
-
-# Further adjust batch size based on GPU memory if using GPU
-if args.use_gpu and torch.cuda.is_available():
-    try:
-        gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3  # GB
-        if gpu_memory < 8:  # Less than 8GB
-            adjusted_batch_size = min(adjusted_batch_size, 32)
-            print(f"⚠️ Warning: Reduced batch size to {adjusted_batch_size} due to limited GPU memory ({gpu_memory:.1f} GB)")
-    except:
-        pass  # Ignore if GPU memory check fails
-
-# Adjust number of workers to avoid system warnings
-adjusted_num_workers = min(args.num_workers, 1)  # Limit to 1 worker to avoid issues
-if adjusted_num_workers != args.num_workers:
-    print(f"⚠️ Warning: Number of workers adjusted from {args.num_workers} to {adjusted_num_workers} to avoid system issues")
+# Use user-provided parameters without modification
+adjusted_batch_size = args.batch_size
+adjusted_num_workers = args.num_workers
 
 train_loader = DataLoader(
     train_dataset, 
@@ -750,7 +735,7 @@ train_eval_callback = TrainEvalMetricsCallback(train_loader)  # Re-enabled for t
 weight_norm_callback = WeightNormCallback()  # Add weight norm callback
 
 # Disable sanity check if validation dataset is too small
-num_sanity_val_steps = 0 if len(val_dataset) < adjusted_batch_size else 2
+num_sanity_val_steps = 0 if len(val_dataset) < args.batch_size else 2
 
 # Configure trainer based on device
 if args.use_gpu and torch.cuda.is_available():
@@ -833,18 +818,14 @@ if __name__ == '__main__':
             print(f"⚠️ Warning: No checkpoint found at {checkpoint_dir}")
             print("🔹 Continuing with a new model...")
 
-    # Adjust learning rate if it's too high
-    if args.lr > 1e-3:
-        print(f"⚠️ Warning: Learning rate {args.lr} might be too high. Adjusting to 1e-3")
-        model.hparams.lr = 1e-3
-        print(f"🔹 New learning rate: {model.hparams.lr}")
+    # Use user-provided learning rate without modification
 
     # Final safety check and training summary
     print(f"\n🔹 Training Configuration Summary:")
     print(f"   - Train dataset size: {len(train_dataset)}")
     print(f"   - Validation dataset size: {len(val_dataset)}")
-    print(f"   - Batch size: {adjusted_batch_size}")
-    print(f"   - Learning rate: {model.hparams.lr}")
+    print(f"   - Batch size: {args.batch_size}")
+    print(f"   - Learning rate: {args.lr}")
     print(f"   - Loss function: {args.loss_fn}")
     print(f"   - Max epochs: {args.epochs}")
     print(f"   - Device: {device}")
