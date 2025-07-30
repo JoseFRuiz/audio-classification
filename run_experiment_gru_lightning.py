@@ -26,6 +26,7 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_027" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 1000 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_028" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-3 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_029" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+# python run_experiment_gru_lightning.py --save_dir "gru_030" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 1
 
 import os
 import argparse
@@ -47,6 +48,33 @@ from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TAR
 import multiprocessing
 import time
 import shutil
+
+def wu_auc_loss(logits, labels, margin=1.0):
+    """Compute Wu AUC surrogate loss across all classes independently."""
+    loss = 0.0
+    num_classes = labels.size(1)
+
+    for c in range(num_classes):
+        y_c = labels[:, c]
+        x_c = logits[:, c]
+
+        pos_mask = y_c == 1
+        neg_mask = y_c == 0
+
+        pos_scores = x_c[pos_mask]
+        neg_scores = x_c[neg_mask]
+
+        if pos_scores.numel() == 0 or neg_scores.numel() == 0:
+            continue
+
+        pos_scores = pos_scores.unsqueeze(1)
+        neg_scores = neg_scores.unsqueeze(0)
+
+        diffs = neg_scores - pos_scores + margin
+        hinge = torch.clamp(diffs, min=0)
+        loss += hinge.mean()
+
+    return loss / num_classes
 
 class EmbeddingDataset(Dataset):
     def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42):
@@ -233,9 +261,9 @@ parser.add_argument("--save_dir", type=str, default="results", help="Directory t
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
 parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available")
 parser.add_argument("--embedding_dir", type=str, default="embeddings", help="Directory to load/save embeddings")
-parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive"], 
-                   help="Loss function to use: bce, asymmetric, or contrastive")
-parser.add_argument("--loss_margin", type=float, default=0.1, help="Margin for contrastive loss")
+parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive", "wu_auc"], 
+                   help="Loss function to use: bce, asymmetric, contrastive, or wu_auc")
+parser.add_argument("--loss_margin", type=float, default=0.1, help="Margin for contrastive loss or Wu AUC loss")
 parser.add_argument("--gamma_pos", type=float, default=0.0, help="Gamma positive for asymmetric loss")
 parser.add_argument("--gamma_neg", type=float, default=4.0, help="Gamma negative for asymmetric loss")
 args = parser.parse_args()
@@ -511,6 +539,8 @@ class LitRNNClassifier(pl.LightningModule):
             )
         elif loss_fn == "contrastive":
             self.loss_fn = MeanContrastiveRankingLoss(margin=loss_margin)
+        elif loss_fn == "wu_auc":
+            self.loss_fn = lambda preds, targets: wu_auc_loss(preds, targets, margin=loss_margin)
         else:
             raise ValueError(f"Unknown loss function: {loss_fn}")
             
