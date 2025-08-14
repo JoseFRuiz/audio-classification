@@ -30,7 +30,10 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_031" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_032" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_033" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "contrastive" --loss_margin 0.1 --num_workers 1
-# python run_experiment_gru_lightning.py --save_dir "gru_034" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0 --num_workers 1
+# python run_experiment_gru_lightning.py --save_dir "gru_034" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0 --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_035" --epochs 1000 --pretrained_model "gru_029" --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
+# python run_experiment_gru_lightning.py --save_dir "gru_036" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0 --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_037" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --num_workers 4
 
 import os
 import argparse
@@ -48,37 +51,12 @@ import librosa
 from tqdm import tqdm
 from pytorch_lightning.loggers import CSVLogger
 import json
-from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH, asymmetric_loss, MeanContrastiveRankingLoss
+from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH, asymmetric_loss, MeanContrastiveRankingLoss, wu_auc_loss, combined_wu_bce_loss
 import multiprocessing
 import time
 import shutil
 
-def wu_auc_loss(logits, labels, margin=1.0):
-    """Compute Wu AUC surrogate loss across all classes independently."""
-    loss = 0.0
-    num_classes = labels.size(1)
 
-    for c in range(num_classes):
-        y_c = labels[:, c]
-        x_c = logits[:, c]
-
-        pos_mask = y_c == 1
-        neg_mask = y_c == 0
-
-        pos_scores = x_c[pos_mask]
-        neg_scores = x_c[neg_mask]
-
-        if pos_scores.numel() == 0 or neg_scores.numel() == 0:
-            continue
-
-        pos_scores = pos_scores.unsqueeze(1)
-        neg_scores = neg_scores.unsqueeze(0)
-
-        diffs = neg_scores - pos_scores + margin
-        hinge = torch.clamp(diffs, min=0)
-        loss += hinge.mean()
-
-    return loss / num_classes
 
 class EmbeddingDataset(Dataset):
     def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42):
@@ -265,11 +243,13 @@ parser.add_argument("--save_dir", type=str, default="results", help="Directory t
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
 parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available")
 parser.add_argument("--embedding_dir", type=str, default="embeddings", help="Directory to load/save embeddings")
-parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive", "wu_auc"], 
-                   help="Loss function to use: bce, asymmetric, contrastive, or wu_auc")
+parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive", "wu_auc", "combined_wu_bce"], 
+                   help="Loss function to use: bce, asymmetric, contrastive, wu_auc, or combined_wu_bce")
 parser.add_argument("--loss_margin", type=float, default=0.1, help="Margin for contrastive loss or Wu AUC loss")
 parser.add_argument("--gamma_pos", type=float, default=0.0, help="Gamma positive for asymmetric loss")
 parser.add_argument("--gamma_neg", type=float, default=4.0, help="Gamma negative for asymmetric loss")
+parser.add_argument("--wu_weight", type=float, default=0.5, help="Weight for Wu AUC component in combined loss")
+parser.add_argument("--bce_weight", type=float, default=0.5, help="Weight for BCE component in combined loss")
 args = parser.parse_args()
 
 # ========================
@@ -516,7 +496,7 @@ val_loader = DataLoader(
 # ========================
 class LitRNNClassifier(pl.LightningModule):
     def __init__(self, input_dim, hidden_dim, num_layers, num_classes, lr, weight_decay, dropout, 
-                 loss_fn="bce", loss_margin=0.1, gamma_pos=0.0, gamma_neg=4.0):
+                 loss_fn="bce", loss_margin=0.1, gamma_pos=0.0, gamma_neg=4.0, wu_weight=0.5, bce_weight=0.5):
         super().__init__()
         self.save_hyperparameters()
         # Only apply dropout if num_layers > 1
@@ -545,6 +525,10 @@ class LitRNNClassifier(pl.LightningModule):
             self.loss_fn = MeanContrastiveRankingLoss(margin=loss_margin)
         elif loss_fn == "wu_auc":
             self.loss_fn = lambda preds, targets: wu_auc_loss(preds, targets, margin=loss_margin)
+        elif loss_fn == "combined_wu_bce":
+            self.loss_fn = lambda preds, targets: combined_wu_bce_loss(
+                preds, targets, wu_weight=wu_weight, bce_weight=bce_weight, margin=loss_margin
+            )
         else:
             raise ValueError(f"Unknown loss function: {loss_fn}")
             
@@ -741,7 +725,9 @@ model = LitRNNClassifier(
     loss_fn=args.loss_fn,
     loss_margin=args.loss_margin,
     gamma_pos=args.gamma_pos,
-    gamma_neg=args.gamma_neg
+    gamma_neg=args.gamma_neg,
+    wu_weight=args.wu_weight,
+    bce_weight=args.bce_weight
 )
 
 checkpoint_callback = ModelCheckpoint(

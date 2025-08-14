@@ -5,6 +5,57 @@ import librosa
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
 
 
+def wu_auc_loss(logits, labels, margin=1.0):
+    """Compute Wu AUC surrogate loss across all classes independently."""
+    loss = 0.0
+    num_classes = labels.size(1)
+
+    for c in range(num_classes):
+        y_c = labels[:, c]
+        x_c = logits[:, c]
+
+        pos_mask = y_c == 1
+        neg_mask = y_c == 0
+
+        pos_scores = x_c[pos_mask]
+        neg_scores = x_c[neg_mask]
+
+        if pos_scores.numel() == 0 or neg_scores.numel() == 0:
+            continue
+
+        pos_scores = pos_scores.unsqueeze(1)
+        neg_scores = neg_scores.unsqueeze(0)
+
+        diffs = neg_scores - pos_scores + margin
+        hinge = torch.clamp(diffs, min=0)
+        loss += hinge.mean()
+
+    return loss / num_classes
+
+
+def combined_wu_bce_loss(logits, labels, wu_weight=0.5, bce_weight=0.5, margin=1.0):
+    """
+    Combined loss function that combines Wu AUC loss and BCE loss with weighted sum.
+    
+    Args:
+        logits: raw model outputs (before sigmoid), shape (batch, num_classes)
+        labels: binary targets, shape (batch, num_classes)
+        wu_weight: weight for Wu AUC loss component
+        bce_weight: weight for BCE loss component
+        margin: margin for Wu AUC loss
+    """
+    # Compute Wu AUC loss
+    wu_loss = wu_auc_loss(logits, labels, margin=margin)
+    
+    # Compute BCE loss (apply sigmoid to logits first)
+    bce_loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels, reduction='mean')
+    
+    # Combine with weighted sum
+    combined_loss = wu_weight * wu_loss + bce_weight * bce_loss
+    
+    return combined_loss
+
+
 TARGET_LENGTH = 10 * 16000
 SAMPLE_RATE = 16000
 
