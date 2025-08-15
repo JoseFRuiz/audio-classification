@@ -58,3 +58,6 @@ slurm-*.out
 
 # Ignore Python virtual environment
 pytorch_env/
+
+gru_036/metrics/version_1/metrics.csv
+gru_037/metrics/version_1/metrics.csv
