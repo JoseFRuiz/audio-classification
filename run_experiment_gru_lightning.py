@@ -33,7 +33,7 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_034" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0 --num_workers 4
 # python run_experiment_gru_lightning.py --save_dir "gru_035" --epochs 1000 --pretrained_model "gru_029" --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_036" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 0.0 --gamma_neg 4.0 --num_workers 4
-# python run_experiment_gru_lightning.py --save_dir "gru_037" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_037" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --num_workers 4
 
 import os
 import argparse
@@ -162,8 +162,9 @@ class TrainEvalMetricsCallback(Callback):
             all_preds = torch.cat(all_preds, dim=0)
             all_targets = torch.cat(all_targets, dim=0)
             
-            # Ensure predictions are in valid range
-            all_preds = torch.clamp(all_preds, min=1e-7, max=1.0-1e-7)
+            # Apply sigmoid to raw logits for metrics computation
+            all_preds_probs = torch.sigmoid(all_preds)
+            all_preds_probs = torch.clamp(all_preds_probs, min=1e-7, max=1.0-1e-7)
             all_targets = all_targets.int()
             
             # Create temporary metrics for training data
@@ -171,10 +172,10 @@ class TrainEvalMetricsCallback(Callback):
             map_metric = MultilabelAveragePrecision(num_labels=pl_module.map.num_labels, average="macro").to(device)
             auc = MultilabelAUROC(num_labels=pl_module.auc.num_labels, average="macro").to(device)
             
-            # Compute metrics
-            train_f1 = f1(all_preds, all_targets)
-            train_map = map_metric(all_preds, all_targets)
-            train_auc = auc(all_preds, all_targets)
+            # Compute metrics using probabilities
+            train_f1 = f1(all_preds_probs, all_targets)
+            train_map = map_metric(all_preds_probs, all_targets)
+            train_auc = auc(all_preds_probs, all_targets)
             
             # Log metrics using the trainer's logger
             trainer.logger.log_metrics({
@@ -225,6 +226,25 @@ class WeightNormCallback(Callback):
         # Log all weight and gradient norms
         trainer.logger.log_metrics(weight_norms, step=trainer.current_epoch)
         trainer.logger.log_metrics(grad_norms, step=trainer.current_epoch)
+        
+        # Add gradient statistics monitoring
+        if trainer.current_epoch % 10 == 0:  # Log every 10 epochs
+            total_grad_norm = 0.0
+            param_count = 0
+            for name, param in pl_module.named_parameters():
+                if param.requires_grad and param.grad is not None:
+                    total_grad_norm += torch.norm(param.grad.data, p=2).item()
+                    param_count += 1
+            
+            if param_count > 0:
+                avg_grad_norm = total_grad_norm / param_count
+                print(f"🔍 Epoch {trainer.current_epoch}: Average gradient norm = {avg_grad_norm:.6f}")
+                
+                # Check for gradient explosion/vanishing
+                if avg_grad_norm > 10.0:
+                    print(f"⚠️ Warning: High gradient norm detected: {avg_grad_norm:.6f}")
+                elif avg_grad_norm < 1e-6:
+                    print(f"⚠️ Warning: Very low gradient norm detected: {avg_grad_norm:.6f}")
 
 # ========================
 # 1. Parse Input Arguments
@@ -506,8 +526,8 @@ class LitRNNClassifier(pl.LightningModule):
             nn.Linear(hidden_dim, 128),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(128, num_classes),
-            nn.Sigmoid()
+            nn.Linear(128, num_classes)
+            # Removed Sigmoid - we'll work with raw logits for better gradient flow
         )
         
         # Initialize weights properly to avoid zero predictions
@@ -515,7 +535,7 @@ class LitRNNClassifier(pl.LightningModule):
         
         # Initialize loss function based on the argument
         if loss_fn == "bce":
-            self.loss_fn = nn.BCELoss()
+            self.loss_fn = nn.BCEWithLogitsLoss()  # Use BCEWithLogitsLoss for raw logits
         elif loss_fn == "asymmetric":
             # Use a simpler asymmetric loss configuration
             self.loss_fn = lambda preds, targets: asymmetric_loss(
@@ -546,7 +566,11 @@ class LitRNNClassifier(pl.LightningModule):
         if torch.all(output == 0):
             print(f"⚠️ Warning: All predictions are zero! Input shape: {x.shape}, Output shape: {output.shape}")
             print(f"   GRU output range: [{h_n.min():.4f}, {h_n.max():.4f}]")
-            print(f"   FC output before sigmoid range: [{self.fc[:-1](h_n).min():.4f}, {self.fc[:-1](h_n).max():.4f}]")
+            print(f"   FC output range: [{self.fc(h_n).min():.4f}, {self.fc(h_n).max():.4f}]")
+        
+        # Add periodic output monitoring
+        if hasattr(self, 'training_step_outputs') and len(self.training_step_outputs) % 100 == 0:
+            print(f"🔍 Model output stats: min={output.min():.4f}, max={output.max():.4f}, mean={output.mean():.4f}")
         
         return output
 
@@ -590,11 +614,11 @@ class LitRNNClassifier(pl.LightningModule):
             if not torch.isfinite(loss):
                 print(f"⚠️ Warning: Non-finite loss detected: {loss.item()}")
                 # Use a fallback loss
-                loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
+                loss = torch.nn.functional.binary_cross_entropy_with_logits(preds, y, reduction='mean')
         except Exception as e:
             print(f"⚠️ Warning: Error computing loss: {str(e)}")
             # Use a fallback loss
-            loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
+            loss = torch.nn.functional.binary_cross_entropy_with_logits(preds, y, reduction='mean')
         
         self.training_step_outputs.append(loss.item())
         
@@ -635,11 +659,11 @@ class LitRNNClassifier(pl.LightningModule):
             if not torch.isfinite(loss):
                 print(f"⚠️ Warning: Non-finite loss detected: {loss.item()}")
                 # Use a fallback loss
-                loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
+                loss = torch.nn.functional.binary_cross_entropy_with_logits(preds, y, reduction='mean')
         except Exception as e:
             print(f"⚠️ Warning: Error computing loss: {str(e)}")
             # Use a fallback loss
-            loss = torch.nn.functional.binary_cross_entropy(preds, y, reduction='mean')
+            loss = torch.nn.functional.binary_cross_entropy_with_logits(preds, y, reduction='mean')
         
         # Log validation loss
         self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True)
@@ -676,8 +700,9 @@ class LitRNNClassifier(pl.LightningModule):
                     print(f"❌ ERROR: Validation target sum ({all_targets.sum()}) exceeds total elements ({all_targets.numel()})!")
                     return
                 
-                # Ensure predictions are in valid range
-                all_preds = torch.clamp(all_preds, min=1e-7, max=1.0-1e-7)
+                # Apply sigmoid to raw logits for metrics computation
+                all_preds_probs = torch.sigmoid(all_preds)
+                all_preds_probs = torch.clamp(all_preds_probs, min=1e-7, max=1.0-1e-7)
                 all_targets = all_targets.int()
                 
                 # Check if we have any positive labels
@@ -685,10 +710,10 @@ class LitRNNClassifier(pl.LightningModule):
                     print("⚠️ Warning: No positive labels in validation set - skipping metrics computation")
                     return
                 
-                # Compute metrics
-                val_f1 = self.f1(all_preds, all_targets)
-                val_map = self.map(all_preds, all_targets)
-                val_auc = self.auc(all_preds, all_targets)
+                # Compute metrics using probabilities
+                val_f1 = self.f1(all_preds_probs, all_targets)
+                val_map = self.map(all_preds_probs, all_targets)
+                val_auc = self.auc(all_preds_probs, all_targets)
                 
                 # Log the metrics
                 self.log('val_f1', val_f1, on_step=False, on_epoch=True, prog_bar=True)

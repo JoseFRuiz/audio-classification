@@ -9,10 +9,18 @@ def wu_auc_loss(logits, labels, margin=1.0):
     """Compute Wu AUC surrogate loss across all classes independently."""
     loss = 0.0
     num_classes = labels.size(1)
+    
+    # Handle case where inputs might already be probabilities
+    if torch.all((logits >= 0) & (logits <= 1)):
+        # Inputs are already probabilities, use them directly
+        probs = logits
+    else:
+        # Inputs are logits, apply sigmoid
+        probs = torch.sigmoid(logits)
 
     for c in range(num_classes):
         y_c = labels[:, c]
-        x_c = logits[:, c]
+        x_c = probs[:, c]
 
         pos_mask = y_c == 1
         neg_mask = y_c == 0
@@ -38,7 +46,7 @@ def combined_wu_bce_loss(logits, labels, wu_weight=0.5, bce_weight=0.5, margin=1
     Combined loss function that combines Wu AUC loss and BCE loss with weighted sum.
     
     Args:
-        logits: raw model outputs (before sigmoid), shape (batch, num_classes)
+        logits: model outputs (can be raw logits or probabilities), shape (batch, num_classes)
         labels: binary targets, shape (batch, num_classes)
         wu_weight: weight for Wu AUC loss component
         bce_weight: weight for BCE loss component
@@ -47,8 +55,13 @@ def combined_wu_bce_loss(logits, labels, wu_weight=0.5, bce_weight=0.5, margin=1
     # Compute Wu AUC loss
     wu_loss = wu_auc_loss(logits, labels, margin=margin)
     
-    # Compute BCE loss (apply sigmoid to logits first)
-    bce_loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels, reduction='mean')
+    # Handle BCE loss based on input type
+    if torch.all((logits >= 0) & (logits <= 1)):
+        # Inputs are already probabilities, use BCE directly
+        bce_loss = torch.nn.functional.binary_cross_entropy(logits, labels, reduction='mean')
+    else:
+        # Inputs are raw logits, use BCE with logits
+        bce_loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels, reduction='mean')
     
     # Combine with weighted sum
     combined_loss = wu_weight * wu_loss + bce_weight * bce_loss
@@ -83,7 +96,7 @@ def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, e
     Optimized to handle large tensors and prevent integer overflow by avoiding large boolean indexing.
 
     Args:
-        logits: raw model outputs (before sigmoid), shape (batch, num_classes)
+        logits: model outputs (can be raw logits or probabilities), shape (batch, num_classes)
         labels: binary targets, shape (batch, num_classes)
         gamma_pos: focusing parameter for positive labels
         gamma_neg: focusing parameter for negative labels
@@ -93,8 +106,14 @@ def asymmetric_loss(logits, labels, gamma_pos=0.0, gamma_neg=4.0, margin=0.05, e
     if logits.device != labels.device:
         labels = labels.to(logits.device)
     
-    # Apply sigmoid and clamp to prevent numerical issues
-    probas = torch.sigmoid(logits)
+    # Handle case where inputs might already be probabilities
+    if torch.all((logits >= 0) & (logits <= 1)):
+        # Inputs are already probabilities, use them directly
+        probas = logits
+    else:
+        # Inputs are logits, apply sigmoid
+        probas = torch.sigmoid(logits)
+    
     probas = torch.clamp(probas, min=eps, max=1.0 - eps)
     
     # Calculate loss element-wise to avoid large boolean indexing
@@ -152,10 +171,16 @@ class MeanContrastiveRankingLoss(nn.Module):
     def forward(self, logits, labels):
         """
         Args:
-            logits: Tensor of shape (batch_size, num_classes), raw model outputs
+            logits: Tensor of shape (batch_size, num_classes), model outputs (can be raw logits or probabilities)
             labels: Tensor of shape (batch_size, num_classes), binary ground truth labels
         """
-        probs = torch.sigmoid(logits)  # Apply sigmoid to convert logits to probabilities
+        # Handle case where inputs might already be probabilities
+        if torch.all((logits >= 0) & (logits <= 1)):
+            # Inputs are already probabilities, use them directly
+            probs = logits
+        else:
+            # Inputs are logits, apply sigmoid
+            probs = torch.sigmoid(logits)
         batch_size = logits.size(0)
         losses = []
 
