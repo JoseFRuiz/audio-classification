@@ -50,3 +50,6 @@ sbatch cpu_job.sh    # CPU training
 - `test_gpu.py` - GPU compatibility testing
 - `pyproject.toml` - Project dependencies and configuration
 - `gru_*/` - Experiment results and checkpoints
+
+# To do next
+Check this paper: https://arxiv.org/pdf/2010.00475

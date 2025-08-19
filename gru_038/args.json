@@ -7,15 +7,15 @@
   "dropout": 0.1,
   "test_size": 0.1,
   "batch_size": 100,
-  "num_workers": 1,
-  "save_dir": "gru_032",
+  "num_workers": 4,
+  "save_dir": "gru_038",
   "pretrained_model": null,
   "use_gpu": true,
   "embedding_dir": "embeddings",
-  "loss_fn": "asymmetric",
+  "loss_fn": "combined_wu_bce",
   "loss_margin": 0.1,
-  "gamma_pos": 1.0,
+  "gamma_pos": 0.0,
   "gamma_neg": 4.0,
-  "wu_weight": 0.5,
-  "bce_weight": 0.5
+  "wu_weight": 0.9,
+  "bce_weight": 0.1
 }

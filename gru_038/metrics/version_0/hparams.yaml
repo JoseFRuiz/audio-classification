@@ -1,0 +1,13 @@
+bce_weight: 0.1
+dropout: 0.1
+gamma_neg: 4.0
+gamma_pos: 0.0
+hidden_dim: 256
+input_dim: 768
+loss_fn: combined_wu_bce
+loss_margin: 0.1
+lr: 0.0001
+num_classes: 200
+num_layers: 2
+weight_decay: 1.0e-05
+wu_weight: 0.9
