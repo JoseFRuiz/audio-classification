@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=audio-classification-2
-#SBATCH --output=multi_gpu2.out
-#SBATCH --error=mult_gpu2.err
+#SBATCH --job-name=audio-classification-5
+#SBATCH --output=multi_gpu5.out
+#SBATCH --error=mult_gpu5.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jfruizmu@unal.edu.co
 #SBATCH --nodes=1
@@ -20,6 +20,6 @@ set -e  # Exit on any error
 
 source activate audio-classification
 
-python run_experiment_gru_lightning.py --save_dir "gru_040" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_asymmetric" --wu_weight 0.5 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4
+python run_experiment_gru_lightning.py --save_dir "gru_043" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4
 
 conda deactivate

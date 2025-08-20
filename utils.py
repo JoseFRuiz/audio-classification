@@ -69,6 +69,66 @@ def combined_wu_bce_loss(logits, labels, wu_weight=0.5, bce_weight=0.5, margin=1
     return combined_loss
 
 
+def combined_wu_asymmetric_loss(logits, labels, wu_weight=0.5, asymmetric_weight=0.5, 
+                               margin=1.0, gamma_pos=0.0, gamma_neg=4.0, asymmetric_margin=0.05):
+    """
+    Combined loss function that combines Wu AUC loss and Asymmetric loss with weighted sum.
+    
+    Args:
+        logits: model outputs (can be raw logits or probabilities), shape (batch, num_classes)
+        labels: binary targets, shape (batch, num_classes)
+        wu_weight: weight for Wu AUC loss component
+        asymmetric_weight: weight for Asymmetric loss component
+        margin: margin for Wu AUC loss
+        gamma_pos: focusing parameter for positive labels in asymmetric loss
+        gamma_neg: focusing parameter for negative labels in asymmetric loss
+        asymmetric_margin: margin for negative class scores in asymmetric loss
+    """
+    # Compute Wu AUC loss
+    wu_loss = wu_auc_loss(logits, labels, margin=margin)
+    
+    # Compute Asymmetric loss
+    asymmetric_loss_val = asymmetric_loss(logits, labels, gamma_pos=gamma_pos, 
+                                        gamma_neg=gamma_neg, margin=asymmetric_margin)
+    
+    # Combine with weighted sum
+    combined_loss = wu_weight * wu_loss + asymmetric_weight * asymmetric_loss_val
+    
+    return combined_loss
+
+
+def combined_asymmetric_bce_loss(logits, labels, asymmetric_weight=0.5, bce_weight=0.5,
+                                gamma_pos=0.0, gamma_neg=4.0, margin=0.05):
+    """
+    Combined loss function that combines Asymmetric loss and BCE loss with weighted sum.
+    
+    Args:
+        logits: model outputs (can be raw logits or probabilities), shape (batch, num_classes)
+        labels: binary targets, shape (batch, num_classes)
+        asymmetric_weight: weight for Asymmetric loss component
+        bce_weight: weight for BCE loss component
+        gamma_pos: focusing parameter for positive labels in asymmetric loss
+        gamma_neg: focusing parameter for negative labels in asymmetric loss
+        margin: margin for negative class scores in asymmetric loss
+    """
+    # Compute Asymmetric loss
+    asymmetric_loss_val = asymmetric_loss(logits, labels, gamma_pos=gamma_pos, 
+                                        gamma_neg=gamma_neg, margin=margin)
+    
+    # Handle BCE loss based on input type
+    if torch.all((logits >= 0) & (logits <= 1)):
+        # Inputs are already probabilities, use BCE directly
+        bce_loss = torch.nn.functional.binary_cross_entropy(logits, labels, reduction='mean')
+    else:
+        # Inputs are raw logits, use BCE with logits
+        bce_loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels, reduction='mean')
+    
+    # Combine with weighted sum
+    combined_loss = asymmetric_weight * asymmetric_loss_val + bce_weight * bce_loss
+    
+    return combined_loss
+
+
 TARGET_LENGTH = 10 * 16000
 SAMPLE_RATE = 16000
 

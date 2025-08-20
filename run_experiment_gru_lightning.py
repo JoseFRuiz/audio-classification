@@ -36,6 +36,11 @@
 # python run_experiment_gru_lightning.py --save_dir "gru_037" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --num_workers 4
 # python run_experiment_gru_lightning.py --save_dir "gru_032" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 1
 # python run_experiment_gru_lightning.py --save_dir "gru_038" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_039" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_040" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_asymmetric" --wu_weight 0.5 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_041" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_042" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4
+# python run_experiment_gru_lightning.py --save_dir "gru_043" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4
 
 import os
 import argparse
@@ -53,7 +58,7 @@ import librosa
 from tqdm import tqdm
 from pytorch_lightning.loggers import CSVLogger
 import json
-from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH, asymmetric_loss, MeanContrastiveRankingLoss, wu_auc_loss, combined_wu_bce_loss
+from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TARGET_LENGTH, asymmetric_loss, MeanContrastiveRankingLoss, wu_auc_loss, combined_wu_bce_loss, combined_wu_asymmetric_loss, combined_asymmetric_bce_loss
 import multiprocessing
 import time
 import shutil
@@ -125,128 +130,189 @@ class EmbeddingDataset(Dataset):
         return torch.tensor(embedding, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
 
 class TrainEvalMetricsCallback(Callback):
-    def __init__(self, train_loader):
+    def __init__(self, train_loader, val_loader):
         super().__init__()
         self.train_loader = train_loader
+        self.val_loader = val_loader
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        # Only compute train metrics on validation epochs
+        # Compute train metrics on training set
         pl_module.eval()
         device = pl_module.device
         loss_fn = pl_module.loss_fn
 
-        total_loss = 0.0
-        total_samples = 0
-        all_preds = []
-        all_targets = []
+        # Train set metrics
+        train_total_loss = 0.0
+        train_total_samples = 0
+        train_all_preds = []
+        train_all_targets = []
 
         with torch.no_grad():
             for x, y in self.train_loader:
                 x, y = x.to(device), y.to(device)
                 preds = pl_module(x)
                 loss = loss_fn(preds, y)
-                total_loss += loss.item() * x.size(0)
-                total_samples += x.size(0)
+                train_total_loss += loss.item() * x.size(0)
+                train_total_samples += x.size(0)
                 
                 # Store predictions and targets
-                all_preds.append(preds.detach())
-                all_targets.append(y.detach())
+                train_all_preds.append(preds.detach())
+                train_all_targets.append(y.detach())
 
-        if total_samples == 0:
+        if train_total_samples == 0:
             print("⚠️ Warning: No training samples found for metrics computation")
             return
 
-        avg_loss = total_loss / total_samples
+        train_avg_loss = train_total_loss / train_total_samples
 
-        # Compute and log final metrics
+        # Compute train metrics
         try:
             # Concatenate all predictions and targets
-            all_preds = torch.cat(all_preds, dim=0)
-            all_targets = torch.cat(all_targets, dim=0)
+            train_all_preds = torch.cat(train_all_preds, dim=0)
+            train_all_targets = torch.cat(train_all_targets, dim=0)
             
             # Apply sigmoid to raw logits for metrics computation
-            all_preds_probs = torch.sigmoid(all_preds)
-            all_preds_probs = torch.clamp(all_preds_probs, min=1e-7, max=1.0-1e-7)
-            all_targets = all_targets.int()
+            train_all_preds_probs = torch.sigmoid(train_all_preds)
+            train_all_preds_probs = torch.clamp(train_all_preds_probs, min=1e-7, max=1.0-1e-7)
+            train_all_targets = train_all_targets.int()
             
             # Create temporary metrics for training data
             f1 = MultilabelF1Score(num_labels=pl_module.f1.num_labels, average="macro").to(device)
             map_metric = MultilabelAveragePrecision(num_labels=pl_module.map.num_labels, average="macro").to(device)
             auc = MultilabelAUROC(num_labels=pl_module.auc.num_labels, average="macro").to(device)
             
-            # Compute metrics using probabilities
-            train_f1 = f1(all_preds_probs, all_targets)
-            train_map = map_metric(all_preds_probs, all_targets)
-            train_auc = auc(all_preds_probs, all_targets)
-            
-            # Log metrics using the trainer's logger
-            trainer.logger.log_metrics({
-                "epoch": trainer.current_epoch,
-                "train_loss_eval": avg_loss,
-                "train_f1_eval": train_f1.item(),
-                "train_map_eval": train_map.item(),
-                "train_auc_eval": train_auc.item()
-            }, step=trainer.current_epoch)
+            # Compute train metrics using probabilities
+            train_f1 = f1(train_all_preds_probs, train_all_targets)
+            train_map = map_metric(train_all_preds_probs, train_all_targets)
+            train_auc = auc(train_all_preds_probs, train_all_targets)
             
             print(f"✅ Epoch {trainer.current_epoch}: train_f1={train_f1:.4f}, train_map={train_map:.4f}, train_auc={train_auc:.4f}")
             
         except Exception as e:
             print(f"⚠️ Warning: Error computing train metrics: {str(e)}")
-            print(f"   Predictions shape: {all_preds.shape}, Targets shape: {all_targets.shape}")
-            print(f"   Predictions range: [{all_preds.min():.4f}, {all_preds.max():.4f}]")
-            print(f"   Targets sum: {all_targets.sum()}, Targets total: {all_targets.numel()}")
-            # Log only the loss as fallback
-            trainer.logger.log_metrics({
-                "epoch": trainer.current_epoch,
-                "train_loss_eval": avg_loss
-            }, step=trainer.current_epoch)
+            train_f1 = torch.tensor(0.0)
+            train_map = torch.tensor(0.0)
+            train_auc = torch.tensor(0.0)
+
+        # Compute all validation metrics on validation set
+        val_total_loss = 0.0
+        val_total_samples = 0
+        val_all_preds = []
+        val_all_targets = []
+
+        with torch.no_grad():
+            for x, y in self.val_loader:
+                x, y = x.to(device), y.to(device)
+                preds = pl_module(x)
+                loss = loss_fn(preds, y)
+                val_total_loss += loss.item() * x.size(0)
+                val_total_samples += x.size(0)
+                
+                # Store predictions and targets
+                val_all_preds.append(preds.detach())
+                val_all_targets.append(y.detach())
+
+        if val_total_samples == 0:
+            print("⚠️ Warning: No validation samples found for validation metrics computation")
+            return
+
+        val_avg_loss = val_total_loss / val_total_samples
+
+        # Compute all validation metrics
+        try:
+            # Concatenate all predictions and targets
+            val_all_preds = torch.cat(val_all_preds, dim=0)
+            val_all_targets = torch.cat(val_all_targets, dim=0)
+            
+            # Apply sigmoid to raw logits for metrics computation
+            val_all_preds_probs = torch.sigmoid(val_all_preds)
+            val_all_preds_probs = torch.clamp(val_all_preds_probs, min=1e-7, max=1.0-1e-7)
+            val_all_targets = val_all_targets.int()
+            
+            # Compute all validation metrics using probabilities
+            val_f1 = f1(val_all_preds_probs, val_all_targets)
+            val_map = map_metric(val_all_preds_probs, val_all_targets)
+            val_auc = auc(val_all_preds_probs, val_all_targets)
+            
+            print(f"✅ Epoch {trainer.current_epoch}: val_f1={val_f1:.4f}, val_map={val_map:.4f}, val_auc={val_auc:.4f}")
+            
+        except Exception as e:
+            print(f"⚠️ Warning: Error computing validation metrics: {str(e)}")
+            val_f1 = torch.tensor(0.0)
+            val_map = torch.tensor(0.0)
+            val_auc = torch.tensor(0.0)
+
+        # Log all metrics using the trainer's logger
+        trainer.logger.log_metrics({
+            "epoch": trainer.current_epoch,
+            "train_loss_eval": train_avg_loss,
+            "train_f1_eval": train_f1.item(),
+            "train_map_eval": train_map.item(),
+            "train_auc_eval": train_auc.item(),
+            "val_loss_eval": val_avg_loss,
+            "val_f1_eval": val_f1.item(),
+            "val_map_eval": val_map.item(),
+            "val_auc_eval": val_auc.item()
+        }, step=trainer.current_epoch)
 
         pl_module.train()  # Switch back to training mode
 
 class WeightNormCallback(Callback):
     def __init__(self):
         super().__init__()
+        self.grad_norms = []
     
-    def on_validation_epoch_end(self, trainer, pl_module):
-        # Calculate L2 norm for each parameter group
-        weight_norms = {}
-        grad_norms = {}
-        
-        # Add epoch to metrics
-        weight_norms["epoch"] = trainer.current_epoch
-        grad_norms["epoch"] = trainer.current_epoch
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        # Capture gradient norms after each training batch (before optimizer step)
+        if batch_idx % trainer.log_every_n_steps == 0:  # Only capture periodically to avoid overhead
+            total_grad_norm = 0.0
+            grad_count = 0
+            
+            for name, param in pl_module.named_parameters():
+                if param.requires_grad and param.grad is not None:
+                    grad_count += 1
+                    total_grad_norm += torch.norm(param.grad.data, p=2).item() ** 2
+            
+            if grad_count > 0:
+                total_grad_norm = total_grad_norm ** 0.5
+                self.grad_norms.append(total_grad_norm)
+    
+    def on_train_epoch_end(self, trainer, pl_module):
+        # Calculate overall L2 norm for all weights
+        total_weight_norm = 0.0
+        param_count = 0
         
         for name, param in pl_module.named_parameters():
             if param.requires_grad:  # Only compute for trainable parameters
-                # Weight norms
-                weight_norms[f"weight_norm/{name}"] = torch.norm(param.data, p=2).item()
-                
-                # Gradient norms (if gradients exist)
-                if param.grad is not None:
-                    grad_norms[f"grad_norm/{name}"] = torch.norm(param.grad.data, p=2).item()
+                param_count += 1
+                # Accumulate weight norm
+                total_weight_norm += torch.norm(param.data, p=2).item() ** 2
         
-        # Log all weight and gradient norms
-        trainer.logger.log_metrics(weight_norms, step=trainer.current_epoch)
-        trainer.logger.log_metrics(grad_norms, step=trainer.current_epoch)
+        # Take square root to get the overall L2 norm
+        total_weight_norm = total_weight_norm ** 0.5
         
-        # Add gradient statistics monitoring
-        if trainer.current_epoch % 10 == 0:  # Log every 10 epochs
-            total_grad_norm = 0.0
-            param_count = 0
-            for name, param in pl_module.named_parameters():
-                if param.requires_grad and param.grad is not None:
-                    total_grad_norm += torch.norm(param.grad.data, p=2).item()
-                    param_count += 1
+        # Use the average gradient norm from this epoch
+        total_grad_norm = np.mean(self.grad_norms) if self.grad_norms else 0.0
+        
+        # Log the overall norms
+        trainer.logger.log_metrics({
+            "epoch": trainer.current_epoch,
+            "total_weight_norm": total_weight_norm,
+            "total_grad_norm": total_grad_norm
+        }, step=trainer.current_epoch)
+        
+        # Add monitoring every 10 epochs
+        if trainer.current_epoch % 10 == 0:
+            print(f"🔍 Epoch {trainer.current_epoch}: Total weight norm = {total_weight_norm:.6f}, Total gradient norm = {total_grad_norm:.6f}")
             
-            if param_count > 0:
-                avg_grad_norm = total_grad_norm / param_count
-                print(f"🔍 Epoch {trainer.current_epoch}: Average gradient norm = {avg_grad_norm:.6f}")
-                
-                # Check for gradient explosion/vanishing
-                if avg_grad_norm > 10.0:
-                    print(f"⚠️ Warning: High gradient norm detected: {avg_grad_norm:.6f}")
-                elif avg_grad_norm < 1e-6:
-                    print(f"⚠️ Warning: Very low gradient norm detected: {avg_grad_norm:.6f}")
+            # Check for gradient explosion/vanishing
+            if total_grad_norm > 10.0:
+                print(f"⚠️ Warning: High gradient norm detected: {total_grad_norm:.6f}")
+            elif total_grad_norm < 1e-6:
+                print(f"⚠️ Warning: Very low gradient norm detected: {total_grad_norm:.6f}")
+        
+        # Clear the gradient norms for the next epoch
+        self.grad_norms.clear()
 
 # ========================
 # 1. Parse Input Arguments
@@ -265,8 +331,8 @@ parser.add_argument("--save_dir", type=str, default="results", help="Directory t
 parser.add_argument("--pretrained_model", type=str, default=None, help="Path to a pretrained model checkpoint")
 parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available")
 parser.add_argument("--embedding_dir", type=str, default="embeddings", help="Directory to load/save embeddings")
-parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive", "wu_auc", "combined_wu_bce"], 
-                   help="Loss function to use: bce, asymmetric, contrastive, wu_auc, or combined_wu_bce")
+parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive", "wu_auc", "combined_wu_bce", "combined_wu_asymmetric", "combined_asymmetric_bce"], 
+                   help="Loss function to use: bce, asymmetric, contrastive, wu_auc, combined_wu_bce, combined_wu_asymmetric, or combined_asymmetric_bce")
 parser.add_argument("--loss_margin", type=float, default=0.1, help="Margin for contrastive loss or Wu AUC loss")
 parser.add_argument("--gamma_pos", type=float, default=0.0, help="Gamma positive for asymmetric loss")
 parser.add_argument("--gamma_neg", type=float, default=4.0, help="Gamma negative for asymmetric loss")
@@ -551,6 +617,16 @@ class LitRNNClassifier(pl.LightningModule):
             self.loss_fn = lambda preds, targets: combined_wu_bce_loss(
                 preds, targets, wu_weight=wu_weight, bce_weight=bce_weight, margin=loss_margin
             )
+        elif loss_fn == "combined_wu_asymmetric":
+            self.loss_fn = lambda preds, targets: combined_wu_asymmetric_loss(
+                preds, targets, wu_weight=wu_weight, asymmetric_weight=1-wu_weight, 
+                margin=loss_margin, gamma_pos=gamma_pos, gamma_neg=gamma_neg, asymmetric_margin=0.05
+            )
+        elif loss_fn == "combined_asymmetric_bce":
+            self.loss_fn = lambda preds, targets: combined_asymmetric_bce_loss(
+                preds, targets, asymmetric_weight=1-bce_weight, bce_weight=bce_weight,
+                gamma_pos=gamma_pos, gamma_neg=gamma_neg, margin=0.05
+            )
         else:
             raise ValueError(f"Unknown loss function: {loss_fn}")
             
@@ -778,7 +854,7 @@ csv_logger = CSVLogger(
     version=None,  # Don't create new version directories
     flush_logs_every_n_steps=args.log_interval  # Use log_interval parameter
 )
-train_eval_callback = TrainEvalMetricsCallback(train_loader)  # Re-enabled for training metrics
+train_eval_callback = TrainEvalMetricsCallback(train_loader, val_loader)  # Pass both loaders for train metrics on train and val sets
 weight_norm_callback = WeightNormCallback()  # Add weight norm callback
 
 # Disable sanity check if validation dataset is too small
