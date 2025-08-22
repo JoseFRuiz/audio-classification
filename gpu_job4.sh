@@ -20,6 +20,6 @@ set -e  # Exit on any error
 
 source activate audio-classification
 
-python run_experiment_gru_lightning.py --save_dir "gru_042" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4
+python run_experiment_gru_lightning.py --save_dir "gru_044" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4
 
 conda deactivate

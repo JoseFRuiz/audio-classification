@@ -53,6 +53,9 @@ core.*
 # Embeddings directory (can be very large)
 embeddings/
 
+# BirdCLEF dataset directory (can be very large)
+birdclef_data/
+
 # SLURM output files
 slurm-*.out
 

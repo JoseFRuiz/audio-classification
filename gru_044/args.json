@@ -1,0 +1,21 @@
+{
+  "epochs": 200,
+  "eval_interval": 10,
+  "log_interval": 10,
+  "lr": 0.0001,
+  "weight_decay": 1e-05,
+  "dropout": 0.1,
+  "test_size": 0.1,
+  "batch_size": 100,
+  "num_workers": 4,
+  "save_dir": "gru_044",
+  "pretrained_model": null,
+  "use_gpu": true,
+  "embedding_dir": "embeddings",
+  "loss_fn": "combined_wu_bce",
+  "loss_margin": 0.1,
+  "gamma_pos": 0.0,
+  "gamma_neg": 4.0,
+  "wu_weight": 0.9,
+  "bce_weight": 0.1
+}
