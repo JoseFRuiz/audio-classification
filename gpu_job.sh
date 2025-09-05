@@ -18,8 +18,11 @@ echo "Directory = $(pwd)"
 # Set up error handling
 set -e  # Exit on any error
 
-source activate audio-classification
+# Properly activate conda environment in SLURM
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate audio-classification
 
-python run_experiment_gru_lightning.py --save_dir "gru_039" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 1
+# Test raw audio model
+python run_experiment_gru_lightning.py --save_dir "raw_014" --epochs 10000 --eval_interval 100 --log_interval 100 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "raw" --window_size 1024 --hop_size 512
 
 conda deactivate

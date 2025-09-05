@@ -1,0 +1,44 @@
+class ConvergenceMonitorCallback(Callback):
+    """Callback to monitor convergence and prevent early stopping when AUC is still improving."""
+    
+    def __init__(self, patience_auc=30, min_auc_improvement=0.001):
+        super().__init__()
+        self.patience_auc = patience_auc
+        self.min_auc_improvement = min_auc_improvement
+        self.best_auc = 0.0
+        self.epochs_without_auc_improvement = 0
+        self.auc_history = []
+        
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Get current AUC from the module's logged metrics
+        if hasattr(pl_module, 'val_auc'):
+            current_auc = pl_module.val_auc
+        else:
+            # Try to get from trainer logger
+            try:
+                current_auc = trainer.logged_metrics.get('val_auc', 0.0)
+            except:
+                current_auc = 0.0
+        
+        self.auc_history.append(current_auc)
+        
+        # Check if AUC improved
+        if current_auc > self.best_auc + self.min_auc_improvement:
+            self.best_auc = current_auc
+            self.epochs_without_auc_improvement = 0
+            print(f"🎯 New best AUC: {self.best_auc:.4f}")
+        else:
+            self.epochs_without_auc_improvement += 1
+            print(f"📊 AUC plateau: {self.epochs_without_auc_improvement}/{self.patience_auc} epochs without improvement")
+        
+        # Warn if AUC is plateauing but loss is still decreasing
+        if self.epochs_without_auc_improvement >= self.patience_auc // 2:
+            print(f"⚠️ Warning: AUC plateauing for {self.epochs_without_auc_improvement} epochs. Consider adjusting learning rate or training strategy.")
+        
+        # Log convergence metrics
+        trainer.logger.log_metrics({
+            "epoch": trainer.current_epoch,
+            "best_auc": self.best_auc,
+            "auc_plateau_epochs": self.epochs_without_auc_improvement,
+            "auc_history": current_auc
+        }, step=trainer.current_epoch)

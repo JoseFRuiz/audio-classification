@@ -34,9 +34,13 @@ multi_gpu2.out
 multi_gpu3.out
 *.out
 
-# Core dump files (from crashes)
+# Core dump files (from crashes) - comprehensive pattern
 core.*
 *.core
+core.*.ufhpc
+core.*.python-*
+core.*-*-*-*-*-*
+core.python-*-*-*-*-*-*.ufhpc
 
 # Large log files
 *.log
@@ -64,3 +68,26 @@ pytorch_env/
 
 gru_036/metrics/version_1/metrics.csv
 gru_037/metrics/version_1/metrics.csv
+
+# Code workspace files and directories
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vscode-server/
+.cursor/
+.cursor-cache/
+.cursor-temp/
+
+# Experiment results and checkpoints
+gru_*/
+birdclef_*/
+results/
+checkpoints/
+logs/
+
+# Temporary workspace files
+*.workspace
+*.code-workspace
+.cursorrules

@@ -1,0 +1,16 @@
+bce_weight: 0.5
+dropout: 0.1
+feature_mode: wav2vec
+gamma_neg: 4.0
+gamma_pos: 1.0
+hidden_dim: 256
+hop_size: 512
+input_dim: 768
+loss_fn: combined_wu_asymmetric
+loss_margin: 0.1
+lr: 0.0001
+num_classes: 200
+num_layers: 2
+weight_decay: 1.0e-05
+window_size: 1024
+wu_weight: 0.5
