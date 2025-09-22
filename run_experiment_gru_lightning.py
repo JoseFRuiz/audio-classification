@@ -88,6 +88,33 @@
 # python run_experiment_gru_lightning.py --save_dir "wav2vec_012" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4
 # python run_experiment_gru_lightning.py --save_dir "wav2vec_013" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4
 
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_014" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_015" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_016" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_017" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_asymmetric" --wu_weight 0.5 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_018" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_019" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
+
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_020" --pretrained_model "wav2vec_014" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 120 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_021" --pretrained_model "wav2vec_015" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 120 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_022" --pretrained_model "wav2vec_016" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 120 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_023" --pretrained_model "wav2vec_017" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_asymmetric" --wu_weight 0.5 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 120 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_024" --pretrained_model "wav2vec_018" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 120 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_025" --pretrained_model "wav2vec_019" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 120 --attention_heads 8 --gradient_accumulation_steps 2
+
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_026" --pretrained_model "wav2vec_014" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 240 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_027" --pretrained_model "wav2vec_015" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 240 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_028" --pretrained_model "wav2vec_016" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 240 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_029" --pretrained_model "wav2vec_017" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_asymmetric" --wu_weight 0.5 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 240 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_030" --pretrained_model "wav2vec_018" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 240 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_031" --pretrained_model "wav2vec_019" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 240 --attention_heads 8 --gradient_accumulation_steps 2
+
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_032" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_033" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_034" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_035" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_asymmetric" --wu_weight 0.5 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_036" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
+# python run_experiment_gru_lightning.py --save_dir "wav2vec_037" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
 
 import os
 import argparse
@@ -500,6 +527,12 @@ parser.add_argument("--gradient_clip_val", type=float, default=0.5, help="Gradie
 parser.add_argument("--use_scheduler", action="store_true", help="Use cosine annealing scheduler")
 parser.add_argument("--use_early_stopping", action="store_true", help="Use early stopping callback")
 parser.add_argument("--early_stopping_patience", type=int, default=100, help="Patience for early stopping")
+# BPTT-related arguments
+parser.add_argument("--bptt_length", type=int, default=60, help="Length of sequences for truncated BPTT (0 = no truncation)")
+parser.add_argument("--use_attention", action="store_true", help="Use temporal attention mechanism")
+parser.add_argument("--use_bidirectional", action="store_true", help="Use bidirectional GRU")
+parser.add_argument("--attention_heads", type=int, default=8, help="Number of attention heads")
+parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help="Number of steps to accumulate gradients")
 args = parser.parse_args()
 
 # ========================
@@ -802,12 +835,16 @@ val_loader = DataLoader(
 class LitRNNClassifier(pl.LightningModule):
     def __init__(self, input_dim, hidden_dim, num_layers, num_classes, lr, weight_decay, dropout, 
                  loss_fn="bce", loss_margin=0.1, gamma_pos=0.0, gamma_neg=4.0, wu_weight=0.5, bce_weight=0.5,
-                 feature_mode="wav2vec", window_size=1024, hop_size=512, use_scheduler=False):
+                 feature_mode="wav2vec", window_size=1024, hop_size=512, use_scheduler=False,
+                 bptt_length=50, use_attention=False, use_bidirectional=False, attention_heads=8):
         super().__init__()
         self.save_hyperparameters()
         self.feature_mode = feature_mode
         self.window_size = window_size
         self.hop_size = hop_size
+        self.bptt_length = bptt_length
+        self.use_attention = use_attention
+        self.use_bidirectional = use_bidirectional
         
         # Feature extraction layers (for both modes to maintain consistency)
         if feature_mode == "raw":
@@ -861,11 +898,37 @@ class LitRNNClassifier(pl.LightningModule):
         
         # Only apply dropout if num_layers > 1
         gru_dropout = dropout if num_layers > 1 else 0
-        self.gru = nn.GRU(gru_input_dim, hidden_dim, num_layers, batch_first=True, dropout=gru_dropout)
+        self.gru = nn.GRU(
+            gru_input_dim, 
+            hidden_dim, 
+            num_layers, 
+            batch_first=True, 
+            dropout=gru_dropout,
+            bidirectional=use_bidirectional
+        )
+        
+        # Adjust hidden dimension for bidirectional
+        gru_output_dim = hidden_dim * 2 if use_bidirectional else hidden_dim
+        
+        # Add temporal attention mechanism
+        if use_attention:
+            self.attention = nn.MultiheadAttention(
+                embed_dim=gru_output_dim,
+                num_heads=attention_heads,
+                dropout=dropout,
+                batch_first=True
+            )
+            self.attention_norm = nn.LayerNorm(gru_output_dim)
+        
+        # Enhanced classifier with residual connections
         self.fc = nn.Sequential(
-            nn.Linear(hidden_dim, 128),
-            nn.LayerNorm(128),  # Use LayerNorm instead of BatchNorm for better gradient flow
-            nn.LeakyReLU(0.1),  # Use LeakyReLU instead of ReLU
+            nn.Linear(gru_output_dim, 256),
+            nn.LayerNorm(256),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(dropout),
+            nn.Linear(256, 128),
+            nn.LayerNorm(128),
+            nn.LeakyReLU(0.1),
             nn.Dropout(dropout),
             nn.Linear(128, num_classes)
             # Removed Sigmoid - we'll work with raw logits for better gradient flow
@@ -975,22 +1038,61 @@ class LitRNNClassifier(pl.LightningModule):
             if torch.all(x == 0) or torch.all(torch.abs(x) < 1e-6):
                 print(f"⚠️ Warning: GRU input is near zero! Max abs value: {torch.abs(x).max():.6f}")
         
-        _, h_n = self.gru(x)
-        h_n = h_n[-1]
+        # Process sequences with BPTT if they're too long (but not for bidirectional GRU)
+        if self.bptt_length > 0 and x.size(1) > self.bptt_length and not self.use_bidirectional:
+            # Truncated BPTT: process in chunks
+            batch_size, seq_len, features = x.shape
+            outputs = []
+            hidden = None
+            
+            for i in range(0, seq_len, self.bptt_length):
+                chunk = x[:, i:i+self.bptt_length, :]
+                chunk_output, hidden = self.gru(chunk, hidden)
+                
+                # Detach hidden state to prevent gradient flow across chunks
+                # This is crucial for truncated BPTT
+                if i + self.bptt_length < seq_len:
+                    # For both unidirectional and bidirectional GRU, hidden is a tuple of tensors
+                    # Each tensor represents the hidden state for each layer
+                    hidden = tuple(h.detach() for h in hidden)
+                
+                outputs.append(chunk_output)
+            
+            # Concatenate outputs
+            gru_output = torch.cat(outputs, dim=1)
+        else:
+            # Process entire sequence at once
+            gru_output, _ = self.gru(x)
+        
+        # Apply attention mechanism
+        if self.use_attention:
+            attn_output, _ = self.attention(gru_output, gru_output, gru_output)
+            gru_output = self.attention_norm(gru_output + attn_output)
+        
+        # Use attention-weighted average instead of just last hidden state
+        if self.use_attention:
+            # Global average pooling with attention weights
+            attention_weights = torch.softmax(
+                torch.mean(gru_output, dim=-1), dim=1
+            ).unsqueeze(-1)
+            pooled_output = torch.sum(gru_output * attention_weights, dim=1)
+        else:
+            # Use mean pooling instead of just last state
+            pooled_output = torch.mean(gru_output, dim=1)
         
         # Monitor GRU output (only occasionally)
         if hasattr(self, 'training_step_outputs') and len(self.training_step_outputs) % 100 == 0:
-            if torch.all(h_n == 0) or torch.all(torch.abs(h_n) < 1e-6):
-                print(f"⚠️ Warning: GRU output is near zero! Max abs value: {torch.abs(h_n).max():.6f}")
+            if torch.all(pooled_output == 0) or torch.all(torch.abs(pooled_output) < 1e-6):
+                print(f"⚠️ Warning: GRU output is near zero! Max abs value: {torch.abs(pooled_output).max():.6f}")
         
-        output = self.fc(h_n)
+        output = self.fc(pooled_output)
         
         # Add safety check for output (only occasionally)
         if hasattr(self, 'training_step_outputs') and len(self.training_step_outputs) % 100 == 0:
             if torch.all(output == 0):
                 print(f"⚠️ Warning: All predictions are zero! Input shape: {x.shape}, Output shape: {output.shape}")
-                print(f"   GRU output range: [{h_n.min():.4f}, {h_n.max():.4f}]")
-                print(f"   FC output range: [{self.fc(h_n).min():.4f}, {self.fc(h_n).max():.4f}]")
+                print(f"   Pooled output range: [{pooled_output.min():.4f}, {pooled_output.max():.4f}]")
+                print(f"   FC output range: [{self.fc(pooled_output).min():.4f}, {self.fc(pooled_output).max():.4f}]")
             print(f"🔍 Model output stats: min={output.min():.4f}, max={output.max():.4f}, mean={output.mean():.4f}")
         
         return output
@@ -1229,6 +1331,10 @@ else:
 print(f"🔹 Feature mode: {args.feature_mode}")
 print(f"🔹 Input dimension: {input_dim}")
 print(f"🔹 Number of classes: {train_dataset[0][1].shape[0]}")
+print(f"🔹 BPTT length: {args.bptt_length}")
+print(f"🔹 Use attention: {args.use_attention}")
+print(f"🔹 Use bidirectional: {args.use_bidirectional}")
+print(f"🔹 Gradient accumulation steps: {args.gradient_accumulation_steps}")
 
 model = LitRNNClassifier(
     input_dim=input_dim,
@@ -1247,7 +1353,11 @@ model = LitRNNClassifier(
     feature_mode=args.feature_mode,
     window_size=args.window_size,
     hop_size=args.hop_size,
-    use_scheduler=args.use_scheduler
+    use_scheduler=args.use_scheduler,
+    bptt_length=args.bptt_length,
+    use_attention=args.use_attention,
+    use_bidirectional=args.use_bidirectional,
+    attention_heads=args.attention_heads
 )
 
 checkpoint_callback = ModelCheckpoint(
@@ -1321,6 +1431,8 @@ trainer = pl.Trainer(
     check_val_every_n_epoch=args.eval_interval,
     log_every_n_steps=args.log_interval,
     gradient_clip_val=args.gradient_clip_val,  # Use command line parameter for gradient clipping
+    gradient_clip_algorithm="norm",  # Add gradient clipping algorithm
+    accumulate_grad_batches=args.gradient_accumulation_steps,  # Add gradient accumulation
     num_sanity_val_steps=num_sanity_val_steps,  # Disable sanity check for small validation sets
     **trainer_config
 )
@@ -1378,6 +1490,10 @@ if __name__ == '__main__':
     print(f"   - Max epochs: {args.epochs}")
     print(f"   - Device: {device}")
     print(f"   - Sanity check steps: {num_sanity_val_steps}")
+    print(f"   - BPTT length: {args.bptt_length}")
+    print(f"   - Use attention: {args.use_attention}")
+    print(f"   - Use bidirectional: {args.use_bidirectional}")
+    print(f"   - Gradient accumulation: {args.gradient_accumulation_steps}")
     
     if len(val_dataset) == 0:
         raise ValueError("Validation dataset is empty. Cannot proceed with training.")

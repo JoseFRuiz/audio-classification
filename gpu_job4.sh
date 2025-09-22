@@ -6,7 +6,7 @@
 #SBATCH --mail-user=jfruizmu@unal.edu.co
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=32gb
+#SBATCH --mem=20gb
 #SBATCH --gpus=1
 #SBATCH --account=azare
 #SBATCH --time=48:00:00
@@ -22,6 +22,6 @@ set -e  # Exit on any error
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate audio-classification
 
-python run_experiment_gru_lightning.py --save_dir "wav2vec_010" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4
+python run_experiment_gru_lightning.py --save_dir "wav2vec_019" --epochs 1000 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
 
 conda deactivate
