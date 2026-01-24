@@ -116,6 +116,51 @@
 # python run_experiment_gru_lightning.py --save_dir "wav2vec_036" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
 # python run_experiment_gru_lightning.py --save_dir "wav2vec_037" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4 --feature_mode "wav2vec" --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
 
+# Attention-only model examples:
+# python run_experiment_gru_lightning.py --save_dir "attention_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "wav2vec" --model_type "attention" --attention_heads 8
+# python run_experiment_gru_lightning.py --save_dir "attention_002" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --model_type "attention" --attention_heads 8
+# python run_experiment_gru_lightning.py --save_dir "attention_003" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --num_workers 4 --feature_mode "wav2vec" --model_type "attention" --attention_heads 8
+# python run_experiment_gru_lightning.py --save_dir "attention_004" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --model_type "attention" --attention_heads 4
+# python run_experiment_gru_lightning.py --save_dir "attention_005" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --model_type "attention" --attention_heads 16
+# python run_experiment_gru_lightning.py --save_dir "attention_006" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --model_type "attention" --attention_heads 32
+
+# Attention+GRU model examples:
+# python run_experiment_gru_lightning.py --save_dir "attention_gru_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "wav2vec" --model_type "gru" --attention_heads 8 --use_bidirectional --use_attention --bptt_length 60 --attention_heads 8 --gradient_accumulation_steps 2
+
+# Convolutional RNN model examples:
+# python run_experiment_gru_lightning.py --save_dir "crnn_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "wav2vec" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1
+# Without truncated BPTT
+# python run_experiment_gru_lightning.py --save_dir "crnn_002" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "wav2vec" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1 --bptt_length 0
+
+# MEL with GRU
+# python run_experiment_gru_lightning.py --save_dir "mel_gru_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "gru" --n_mels 128 --n_fft 2048 --hop_length 512
+
+# MEL with Attention-only
+# python run_experiment_gru_lightning.py --save_dir "mel_attention_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "attention" --attention_heads 8 --n_mels 128 --n_fft 2048 --hop_length 512
+
+# MEL with GRU + Attention
+# python run_experiment_gru_lightning.py --save_dir "mel_gru_attn_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "gru" --use_attention --attention_heads 8 --n_mels 128 --n_fft 2048 --hop_length 512
+
+# Complete dataset with Convolutional RNN and BPTT model examples:
+# python run_experiment_gru_lightning.py --save_dir "complete_crnn_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1 --dataset_type "complete" --bptt_length 60
+
+
+# Complete dataset with MEL GRU + Attention
+# python run_experiment_gru_lightning.py --save_dir "complete_mel_gru_attn_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "gru" --use_attention --attention_heads 8 --n_mels 128 --n_fft 2048 --hop_length 512 --dataset_type "complete"
+
+# Complete dataset with Convolutional RNN and different BPTT lengths:
+# python run_experiment_gru_lightning.py --save_dir "complete_crnn_002" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1 --dataset_type "complete" --bptt_length 30
+# python run_experiment_gru_lightning.py --save_dir "complete_crnn_003" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1 --dataset_type "complete" --bptt_length 0
+
+# Complete dataset with Convolutional RNN and assymetric loss:
+# python run_experiment_gru_lightning.py --save_dir "complete_crnn_004" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "asymmetric" --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --feature_mode "mel" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1 --dataset_type "complete" --bptt_length 60
+
+# Complete dataset with Convolutional RNN and contrastive loss:
+# python run_experiment_gru_lightning.py --save_dir "complete_crnn_005" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "contrastive" --loss_margin 0.1 --num_workers 4 --feature_mode "mel" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1 --dataset_type "complete" --bptt_length 60
+
+# Complete dataset with Convolutional RNN and Wu AUC loss:
+# python run_experiment_gru_lightning.py --save_dir "complete_crnn_006" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --feature_mode "mel" --model_type "crnn" --conv_channels 64 128 256 --conv_kernel_size 3 --conv_stride 1 --dataset_type "complete" --bptt_length 60
+
 import os
 import argparse
 import numpy as np
@@ -136,13 +181,26 @@ from utils import preprocess_audio, extract_wav2vec_embeddings, SAMPLE_RATE, TAR
 import multiprocessing
 import time
 import shutil
+import warnings
+from transformers import logging as transformers_logging
 
 
 
 class EmbeddingDataset(Dataset):
-    def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42):
+    def __init__(self, embedding_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42,
+                 use_sliding_windows=False, max_length=160000, sliding_window_size=160000, sliding_window_hop=80000,
+                 sample_rate=16000):
         self.embedding_dir = embedding_dir
         self.is_train = is_train
+        self.use_sliding_windows = use_sliding_windows
+        self.max_length = max_length
+        self.sliding_window_size = sliding_window_size
+        self.sliding_window_hop = sliding_window_hop
+        self.sample_rate = sample_rate
+        # Convert from samples to embedding frames (wav2vec typically has ~50ms frames)
+        # Approximate: 16000 samples/sec / 20ms per frame = 50 frames/sec
+        self.frames_per_second = 50  # Approximate for wav2vec2-base
+        self.samples_per_frame = sample_rate // self.frames_per_second
         
         print(f"🔹 Looking for embedding files in: {os.path.abspath(embedding_dir)}")
         
@@ -201,21 +259,176 @@ class EmbeddingDataset(Dataset):
         if not os.path.exists(embedding_path):
             raise FileNotFoundError(f"Embedding file not found: {embedding_path}")
         
-        embedding = np.load(embedding_path)
+        embedding = np.load(embedding_path)  # Shape: (seq_len, 768)
+        embedding = torch.tensor(embedding, dtype=torch.float32)
         
-        return torch.tensor(embedding, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+        # Handle variable-length embeddings with sliding windows
+        if self.use_sliding_windows:
+            # Convert max_length from samples to frames
+            max_frames = int(self.max_length / self.samples_per_frame)
+            window_frames = int(self.sliding_window_size / self.samples_per_frame)
+            hop_frames = int(self.sliding_window_hop / self.samples_per_frame)
+            
+            if embedding.shape[0] > max_frames:
+                # Create sliding windows for long embeddings
+                windows = []
+                for start in range(0, embedding.shape[0] - window_frames + 1, hop_frames):
+                    window = embedding[start:start + window_frames]
+                    windows.append(window)
+                
+                # Stack windows: (num_windows, window_frames, 768)
+                windows_tensor = torch.stack(windows)
+                return windows_tensor, torch.tensor(label, dtype=torch.float32)
+            else:
+                # Short embedding: add window dimension
+                embedding = embedding.unsqueeze(0)  # (1, seq_len, 768)
+                return embedding, torch.tensor(label, dtype=torch.float32)
+        else:
+            # Original behavior: return single embedding
+            return embedding, torch.tensor(label, dtype=torch.float32)
+
+class MELSpectrogramDataset(Dataset):
+    """Dataset class for MEL spectrogram extraction from raw audio files."""
+    
+    def __init__(self, audio_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42,
+                 target_length=160000, sample_rate=16000, n_mels=128, n_fft=2048, hop_length=512,
+                 use_sliding_windows=False, max_length=160000, sliding_window_size=160000, sliding_window_hop=80000):
+        self.audio_dir = audio_dir
+        self.target_length = target_length
+        self.sample_rate = sample_rate
+        self.n_mels = n_mels
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.is_train = is_train
+        self.use_sliding_windows = use_sliding_windows
+        self.max_length = max_length
+        self.sliding_window_size = sliding_window_size
+        self.sliding_window_hop = sliding_window_hop
+        
+        print(f"🔹 Looking for raw audio files in: {os.path.abspath(audio_dir)}")
+        print(f"🔹 MEL parameters: n_mels={n_mels}, n_fft={n_fft}, hop_length={hop_length}")
+        
+        # Store the pre-filtered data
+        self.clip_ids = np.array(clip_ids)
+        self.labels = np.array(labels)
+        
+        # Use provided indices if available, otherwise create train/test split
+        if indices is not None:
+            self.indices = indices
+        else:
+            # Create train/test split indices
+            indices = np.arange(len(self.clip_ids))
+            np.random.seed(random_state)
+            np.random.shuffle(indices)
+            split_idx = int(len(indices) * (1 - test_size))
+            
+            if is_train:
+                self.indices = indices[:split_idx]
+            else:
+                self.indices = indices[split_idx:]
+        
+        print(f"🔹 {'Training' if is_train else 'Validation'} dataset size: {len(self.indices)}")
+        
+        # Additional safety checks
+        if len(self.indices) == 0:
+            raise ValueError(f"Empty {'training' if is_train else 'validation'} dataset. "
+                           f"This might be due to an incorrect test_size parameter or insufficient data.")
+    
+    def __len__(self):
+        return len(self.indices)
+    
+    def __getitem__(self, idx):
+        clip_idx = self.indices[idx]
+        clip_id = self.clip_ids[clip_idx]
+        label = self.labels[clip_idx]
+        
+        # Find audio file
+        audio_path = None
+        for ext in ['wav', 'mp3', 'flac', 'ogg']:
+            temp_path = os.path.join(self.audio_dir, f"{clip_id}.{ext}")
+            if os.path.exists(temp_path):
+                audio_path = temp_path
+                break
+        
+        if audio_path is None:
+            raise FileNotFoundError(f"Audio file not found for {clip_id}")
+        
+        # Load and preprocess audio
+        try:
+            audio, sr = librosa.load(audio_path, sr=self.sample_rate)
+            
+            # Handle variable-length audio with sliding windows
+            if self.use_sliding_windows and len(audio) > self.max_length:
+                # Create sliding windows for long audio
+                windows = []
+                for start in range(0, len(audio) - self.sliding_window_size + 1, self.sliding_window_hop):
+                    window_audio = audio[start:start + self.sliding_window_size]
+                    # Compute MEL spectrogram for this window
+                    mel_spec = librosa.feature.melspectrogram(
+                        y=window_audio,
+                        sr=self.sample_rate,
+                        n_mels=self.n_mels,
+                        n_fft=self.n_fft,
+                        hop_length=self.hop_length,
+                        fmin=0,
+                        fmax=self.sample_rate // 2
+                    )
+                    mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+                    windows.append(torch.tensor(mel_spec_db, dtype=torch.float32))
+                
+                # Stack windows: (num_windows, n_mels, time_frames)
+                windows_tensor = torch.stack(windows)
+                return windows_tensor, torch.tensor(label, dtype=torch.float32)
+            else:
+                # Short audio: pad or truncate to target length
+                if len(audio) < self.target_length:
+                    audio = np.pad(audio, (0, self.target_length - len(audio)), mode='constant')
+                else:
+                    audio = audio[:self.target_length]
+                
+                # Compute MEL spectrogram
+                mel_spec = librosa.feature.melspectrogram(
+                    y=audio,
+                    sr=self.sample_rate,
+                    n_mels=self.n_mels,
+                    n_fft=self.n_fft,
+                    hop_length=self.hop_length,
+                    fmin=0,
+                    fmax=self.sample_rate // 2
+                )
+                
+                # Convert to log scale (dB)
+                mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+                
+                # Convert to tensor: (n_mels, time_frames) -> add window dimension: (1, n_mels, time_frames)
+                mel_tensor = torch.tensor(mel_spec_db, dtype=torch.float32)
+                mel_tensor = mel_tensor.unsqueeze(0)  # (1, n_mels, time_frames)
+                
+                return mel_tensor, torch.tensor(label, dtype=torch.float32)
+            
+        except Exception as e:
+            print(f"Error loading audio file {audio_path}: {str(e)}")
+            # Return zero tensor as fallback (approximate time frames) with window dimension
+            time_frames = (self.target_length // self.hop_length) + 1
+            fallback_tensor = torch.zeros(self.n_mels, time_frames, dtype=torch.float32).unsqueeze(0)  # (1, n_mels, time_frames)
+            return fallback_tensor, torch.tensor(label, dtype=torch.float32)
 
 class RawAudioDataset(Dataset):
     """Dataset class for raw audio files with learnable feature extraction."""
     
     def __init__(self, audio_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42, 
-                 target_length=160000, sample_rate=16000, window_size=1024, hop_size=512):
+                 target_length=160000, sample_rate=16000, window_size=1024, hop_size=512,
+                 use_sliding_windows=False, max_length=160000, sliding_window_size=160000, sliding_window_hop=80000):
         self.audio_dir = audio_dir
         self.target_length = target_length
         self.sample_rate = sample_rate
-        self.window_size = window_size  # Size of each time window
-        self.hop_size = hop_size        # Stride between windows
+        self.window_size = window_size  # Size of each time window for feature extraction
+        self.hop_size = hop_size        # Stride between windows for feature extraction
         self.is_train = is_train
+        self.use_sliding_windows = use_sliding_windows
+        self.max_length = max_length
+        self.sliding_window_size = sliding_window_size  # Size of sliding windows for long audio
+        self.sliding_window_hop = sliding_window_hop    # Hop size between sliding windows
         
         print(f"🔹 Looking for raw audio files in: {os.path.abspath(audio_dir)}")
         print(f"🔹 Window size: {window_size}, Hop size: {hop_size}")
@@ -269,21 +482,89 @@ class RawAudioDataset(Dataset):
         try:
             audio, sr = librosa.load(audio_path, sr=self.sample_rate)
             
-            # Pad or truncate to target length
-            if len(audio) < self.target_length:
-                audio = np.pad(audio, (0, self.target_length - len(audio)), mode='constant')
+            # Handle variable-length audio with sliding windows
+            if self.use_sliding_windows and len(audio) > self.max_length:
+                # Create sliding windows for long audio
+                windows = []
+                for start in range(0, len(audio) - self.sliding_window_size + 1, self.sliding_window_hop):
+                    window_audio = audio[start:start + self.sliding_window_size]
+                    windows.append(torch.tensor(window_audio, dtype=torch.float32))
+                
+                # Stack windows: (num_windows, window_size)
+                windows_tensor = torch.stack(windows)
+                return windows_tensor, torch.tensor(label, dtype=torch.float32)
             else:
-                audio = audio[:self.target_length]
-            
-            # Convert to tensor
-            audio_tensor = torch.tensor(audio, dtype=torch.float32)
-            
-            return audio_tensor, torch.tensor(label, dtype=torch.float32)
+                # Short audio: pad or truncate to target length
+                if len(audio) < self.target_length:
+                    audio = np.pad(audio, (0, self.target_length - len(audio)), mode='constant')
+                else:
+                    audio = audio[:self.target_length]
+                
+                # Convert to tensor and add window dimension: (1, audio_length)
+                audio_tensor = torch.tensor(audio, dtype=torch.float32)
+                audio_tensor = audio_tensor.unsqueeze(0)  # (1, audio_length)
+                
+                return audio_tensor, torch.tensor(label, dtype=torch.float32)
             
         except Exception as e:
             print(f"Error loading audio file {audio_path}: {str(e)}")
-            # Return zero tensor as fallback
-            return torch.zeros(self.target_length, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+            # Return zero tensor as fallback with window dimension
+            fallback_tensor = torch.zeros(self.target_length, dtype=torch.float32).unsqueeze(0)  # (1, target_length)
+            return fallback_tensor, torch.tensor(label, dtype=torch.float32)
+
+def sliding_window_collate_fn(batch):
+    """
+    Custom collate function for sliding window batches.
+    Handles variable number of windows per sample.
+    
+    Args:
+        batch: List of (windows_tensor, label) tuples where:
+            - windows_tensor: (num_windows, ...) tensor for samples with multiple windows
+                           or (1, ...) tensor for samples with single window
+            - label: (num_classes,) tensor
+    
+    Returns:
+        batched_windows: (batch_size, max_windows, ...) padded tensor
+        labels: (batch_size, num_classes) tensor
+        window_masks: (batch_size, max_windows) boolean tensor (True for real windows, False for padding)
+    """
+    windows_list, labels = zip(*batch)
+    
+    # Find max number of windows
+    num_windows_list = [w.shape[0] for w in windows_list]
+    max_windows = max(num_windows_list)
+    
+    # Get the shape of a single window (excluding the window dimension)
+    window_shape = windows_list[0].shape[1:]  # Shape after removing window dimension
+    
+    # Pad windows and create masks
+    padded_windows = []
+    window_masks = []
+    
+    for windows in windows_list:
+        num_windows = windows.shape[0]
+        if num_windows < max_windows:
+            # Pad with last window (repeat the last window)
+            last_window = windows[-1:]  # (1, ...)
+            padding = last_window.repeat(max_windows - num_windows, *([1] * len(window_shape)))
+            padded = torch.cat([windows, padding], dim=0)
+            mask = torch.cat([
+                torch.ones(num_windows, dtype=torch.bool),
+                torch.zeros(max_windows - num_windows, dtype=torch.bool)
+            ])
+        else:
+            padded = windows
+            mask = torch.ones(num_windows, dtype=torch.bool)
+        
+        padded_windows.append(padded)
+        window_masks.append(mask)
+    
+    # Stack: (batch_size, max_windows, ...)
+    batched_windows = torch.stack(padded_windows)
+    labels = torch.stack(labels)
+    window_masks = torch.stack(window_masks)
+    
+    return batched_windows, labels, window_masks
 
 class TrainEvalMetricsCallback(Callback):
     def __init__(self, train_loader, val_loader):
@@ -304,9 +585,15 @@ class TrainEvalMetricsCallback(Callback):
         train_all_targets = []
 
         with torch.no_grad():
-            for x, y in self.train_loader:
+            for batch in self.train_loader:
+                if len(batch) == 3:
+                    x, y, window_masks = batch
+                    window_masks = window_masks.to(device)
+                else:
+                    x, y = batch
+                    window_masks = None
                 x, y = x.to(device), y.to(device)
-                preds = pl_module(x)
+                preds = pl_module(x, window_masks)
                 loss = loss_fn(preds, y)
                 train_total_loss += loss.item() * x.size(0)
                 train_total_samples += x.size(0)
@@ -357,9 +644,15 @@ class TrainEvalMetricsCallback(Callback):
         val_all_targets = []
 
         with torch.no_grad():
-            for x, y in self.val_loader:
+            for batch in self.val_loader:
+                if len(batch) == 3:
+                    x, y, window_masks = batch
+                    window_masks = window_masks.to(device)
+                else:
+                    x, y = batch
+                    window_masks = None
                 x, y = x.to(device), y.to(device)
-                preds = pl_module(x)
+                preds = pl_module(x, window_masks)
                 loss = loss_fn(preds, y)
                 val_total_loss += loss.item() * x.size(0)
                 val_total_samples += x.size(0)
@@ -512,10 +805,13 @@ parser.add_argument("--pretrained_model", type=str, default=None, help="Path to 
 parser.add_argument("--use_gpu", action="store_true", help="Use GPU if available")
 parser.add_argument("--embedding_dir", type=str, default="embeddings", help="Directory to load/save embeddings")
 parser.add_argument("--audio_dir", type=str, default="../tmp/fsd50k/FSD50K.dev_audio", help="Directory containing raw audio files")
-parser.add_argument("--feature_mode", type=str, default="wav2vec", choices=["wav2vec", "raw"], 
-                   help="Feature extraction mode: 'wav2vec' for pre-computed embeddings, 'raw' for learnable feature extraction")
+parser.add_argument("--feature_mode", type=str, default="wav2vec", choices=["wav2vec", "raw", "mel"], 
+                   help="Feature extraction mode: 'wav2vec' for pre-computed embeddings, 'raw' for learnable feature extraction, 'mel' for MEL spectrograms")
 parser.add_argument("--window_size", type=int, default=1024, help="Window size for raw audio feature extraction")
 parser.add_argument("--hop_size", type=int, default=512, help="Hop size (stride) between windows for raw audio feature extraction")
+parser.add_argument("--n_mels", type=int, default=128, help="Number of MEL filter banks for MEL spectrogram")
+parser.add_argument("--n_fft", type=int, default=2048, help="FFT window size for MEL spectrogram")
+parser.add_argument("--hop_length", type=int, default=512, help="Hop length for MEL spectrogram")
 parser.add_argument("--loss_fn", type=str, default="bce", choices=["bce", "asymmetric", "contrastive", "wu_auc", "combined_wu_bce", "combined_wu_asymmetric", "combined_asymmetric_bce"], 
                    help="Loss function to use: bce, asymmetric, contrastive, wu_auc, combined_wu_bce, combined_wu_asymmetric, or combined_asymmetric_bce")
 parser.add_argument("--loss_margin", type=float, default=0.1, help="Margin for contrastive loss or Wu AUC loss")
@@ -533,6 +829,29 @@ parser.add_argument("--use_attention", action="store_true", help="Use temporal a
 parser.add_argument("--use_bidirectional", action="store_true", help="Use bidirectional GRU")
 parser.add_argument("--attention_heads", type=int, default=8, help="Number of attention heads")
 parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help="Number of steps to accumulate gradients")
+parser.add_argument("--model_type", type=str, default="gru", choices=["gru", "attention", "crnn"], 
+                   help="Model architecture: 'gru' for GRU, 'attention' for attention-only, or 'crnn' for Convolutional RNN")
+parser.add_argument("--conv_channels", type=int, nargs="+", default=[64, 128, 256], 
+                   help="Number of channels for each convolutional layer in CRNN (e.g., --conv_channels 64 128 256)")
+parser.add_argument("--conv_kernel_size", type=int, default=3, 
+                   help="Kernel size for convolutional layers in CRNN")
+parser.add_argument("--conv_stride", type=int, default=1, 
+                   help="Stride for convolutional layers in CRNN")
+# Sliding window arguments for variable-length audio
+parser.add_argument("--use_sliding_windows", action="store_true", 
+                   help="Use sliding windows for audio longer than max_length")
+parser.add_argument("--max_length", type=int, default=160000, 
+                   help="Maximum audio length in samples before using sliding windows (default: 10 seconds at 16kHz)")
+parser.add_argument("--sliding_window_size", type=int, default=160000, 
+                   help="Size of each sliding window in samples (default: 10 seconds at 16kHz)")
+parser.add_argument("--sliding_window_hop", type=int, default=80000, 
+                   help="Hop size between sliding windows in samples (default: 5 seconds at 16kHz, 50% overlap)")
+parser.add_argument("--window_aggregation", type=str, default="mean", 
+                   choices=["mean", "max", "attention"], 
+                   help="Method to aggregate predictions from multiple windows: mean, max, or attention")
+parser.add_argument("--dataset_type", type=str, default="max10sec", 
+                   choices=["max10sec", "complete"], 
+                   help="Dataset type: 'max10sec' for filtered dataset (max 10 seconds) or 'complete' for full dataset")
 args = parser.parse_args()
 
 # ========================
@@ -568,16 +887,30 @@ if args.use_gpu and torch.cuda.is_available():
     print("🔹 Enabled Tensor Cores for better performance")
 
 # ========================
-# 3. Load Wav2Vec 2.0 Model
+# 3. Load Wav2Vec 2.0 Model (only when needed)
 # ========================
-MODEL_NAME = "facebook/wav2vec2-base-960h"
-processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
-wav2vec_model = Wav2Vec2Model.from_pretrained(MODEL_NAME)
-wav2vec_model.eval()
-wav2vec_model.to(device)
+# Suppress transformers warnings to reduce log noise
+transformers_logging.set_verbosity_error()
 
 TARGET_LENGTH = 10 * 16000
 SAMPLE_RATE = 16000
+
+# Initialize Wav2Vec model variables (will be loaded only when needed)
+processor = None
+wav2vec_model = None
+
+def load_wav2vec_model():
+    """Load Wav2Vec model only when needed (lazy loading)."""
+    global processor, wav2vec_model
+    if processor is None or wav2vec_model is None:
+        MODEL_NAME = "facebook/wav2vec2-base-960h"
+        print(f"🔹 Loading Wav2Vec model: {MODEL_NAME}")
+        processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
+        wav2vec_model = Wav2Vec2Model.from_pretrained(MODEL_NAME)
+        wav2vec_model.eval()
+        wav2vec_model.to(device)
+        print("🔹 Wav2Vec model loaded successfully")
+    return processor, wav2vec_model
 
 # Ensure save_dir is a directory
 if os.path.exists(args.save_dir):
@@ -595,8 +928,16 @@ with open(os.path.join(args.save_dir, "args.json"), "w") as f:
 # ========================
 # 5. Load Dataset & Extract Features
 # ========================
-csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
+# Select CSV file based on dataset type
+if args.dataset_type == "max10sec":
+    csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration_max10sec.csv"
+elif args.dataset_type == "complete":
+    csv_path = "../tmp/fsd50k_spc/fsd50k_clips_labels_duration.csv"
+else:
+    raise ValueError(f"Unknown dataset_type: {args.dataset_type}")
+
 print(f"🔹 Loading CSV from: {csv_path}")
+print(f"🔹 Dataset type: {args.dataset_type}")
 if not os.path.exists(csv_path):
     raise FileNotFoundError(f"CSV file not found at: {csv_path}")
 
@@ -641,6 +982,9 @@ if args.feature_mode == "wav2vec":
             print(f"🔹 Using {len(embedding_files)} existing embedding files")
     else:
         print("🔹 No precomputed embeddings found. Starting extraction...")
+        # Load Wav2Vec model only when needed for extraction
+        processor, wav2vec_model = load_wav2vec_model()
+        
         processed_count = 0
         error_count = 0
         missing_files = []
@@ -734,8 +1078,18 @@ try:
             raise ValueError("Validation split is empty. This might be due to an incorrect test_size parameter.")
         
         # Create datasets with pre-filtered data
-        train_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=train_indices, is_train=True, test_size=0.0)
-        val_dataset = EmbeddingDataset(embeddings_subdir, valid_clip_ids, valid_labels, indices=val_indices, is_train=False, test_size=0.0)
+        train_dataset = EmbeddingDataset(
+            embeddings_subdir, valid_clip_ids, valid_labels, indices=train_indices, is_train=True, test_size=0.0,
+            use_sliding_windows=args.use_sliding_windows, max_length=args.max_length,
+            sliding_window_size=args.sliding_window_size, sliding_window_hop=args.sliding_window_hop,
+            sample_rate=SAMPLE_RATE
+        )
+        val_dataset = EmbeddingDataset(
+            embeddings_subdir, valid_clip_ids, valid_labels, indices=val_indices, is_train=False, test_size=0.0,
+            use_sliding_windows=args.use_sliding_windows, max_length=args.max_length,
+            sliding_window_size=args.sliding_window_size, sliding_window_hop=args.sliding_window_hop,
+            sample_rate=SAMPLE_RATE
+        )
         
     else:  # raw audio mode
         print(f"🔹 Using raw audio files from {AUDIO_DIR}")
@@ -780,9 +1134,35 @@ try:
         if len(val_indices) == 0:
             raise ValueError("Validation split is empty. This might be due to an incorrect test_size parameter.")
         
-        # Create datasets with raw audio using the filtered data
-        train_dataset = RawAudioDataset(AUDIO_DIR, valid_clip_ids, valid_labels, indices=train_indices, is_train=True, test_size=0.0, window_size=args.window_size, hop_size=args.hop_size)
-        val_dataset = RawAudioDataset(AUDIO_DIR, valid_clip_ids, valid_labels, indices=val_indices, is_train=False, test_size=0.0, window_size=args.window_size, hop_size=args.hop_size)
+        # Create datasets based on feature mode
+        if args.feature_mode == "mel":
+            # MEL spectrogram mode
+            train_dataset = MELSpectrogramDataset(
+                AUDIO_DIR, valid_clip_ids, valid_labels, indices=train_indices, is_train=True, test_size=0.0, 
+                n_mels=args.n_mels, n_fft=args.n_fft, hop_length=args.hop_length,
+                use_sliding_windows=args.use_sliding_windows, max_length=args.max_length,
+                sliding_window_size=args.sliding_window_size, sliding_window_hop=args.sliding_window_hop
+            )
+            val_dataset = MELSpectrogramDataset(
+                AUDIO_DIR, valid_clip_ids, valid_labels, indices=val_indices, is_train=False, test_size=0.0,
+                n_mels=args.n_mels, n_fft=args.n_fft, hop_length=args.hop_length,
+                use_sliding_windows=args.use_sliding_windows, max_length=args.max_length,
+                sliding_window_size=args.sliding_window_size, sliding_window_hop=args.sliding_window_hop
+            )
+        else:
+            # Raw audio mode
+            train_dataset = RawAudioDataset(
+                AUDIO_DIR, valid_clip_ids, valid_labels, indices=train_indices, is_train=True, test_size=0.0, 
+                window_size=args.window_size, hop_size=args.hop_size,
+                use_sliding_windows=args.use_sliding_windows, max_length=args.max_length,
+                sliding_window_size=args.sliding_window_size, sliding_window_hop=args.sliding_window_hop
+            )
+            val_dataset = RawAudioDataset(
+                AUDIO_DIR, valid_clip_ids, valid_labels, indices=val_indices, is_train=False, test_size=0.0, 
+                window_size=args.window_size, hop_size=args.hop_size,
+                use_sliding_windows=args.use_sliding_windows, max_length=args.max_length,
+                sliding_window_size=args.sliding_window_size, sliding_window_hop=args.sliding_window_hop
+            )
     
     print(f"🔹 Train dataset size: {len(train_dataset)}")
     print(f"🔹 Validation dataset size: {len(val_dataset)}")
@@ -792,6 +1172,15 @@ try:
         raise ValueError(f"Training dataset too small ({len(train_dataset)} samples). Need at least 10 samples.")
     if len(val_dataset) < 5:
         raise ValueError(f"Validation dataset too small ({len(val_dataset)} samples). Need at least 5 samples.")
+    
+    # Check for positive samples in validation set
+    val_labels_sample = [val_dataset[i][1] for i in range(min(100, len(val_dataset)))]
+    val_labels_sample = torch.stack(val_labels_sample)
+    if val_labels_sample.sum() == 0:
+        print("⚠️ Warning: No positive labels found in validation set sample. This may cause metric computation issues.")
+        print("   Consider checking your data split or label distribution.")
+    else:
+        print(f"✅ Validation set has positive labels: {val_labels_sample.sum().item()} positive labels in sample")
     
     print(f"✅ Dataset creation successful!")
     
@@ -813,20 +1202,25 @@ except Exception as e:
 adjusted_batch_size = args.batch_size
 adjusted_num_workers = args.num_workers
 
+# Use custom collate function if sliding windows are enabled
+collate_fn = sliding_window_collate_fn if args.use_sliding_windows else None
+
 train_loader = DataLoader(
     train_dataset, 
     batch_size=adjusted_batch_size, 
     shuffle=True,
     num_workers=adjusted_num_workers,
     pin_memory=True,
-    persistent_workers=True if adjusted_num_workers > 0 else False
+    persistent_workers=True if adjusted_num_workers > 0 else False,
+    collate_fn=collate_fn
 )
 val_loader = DataLoader(
     val_dataset, 
     batch_size=adjusted_batch_size,
     num_workers=adjusted_num_workers,
     pin_memory=True,
-    persistent_workers=True if adjusted_num_workers > 0 else False
+    persistent_workers=True if adjusted_num_workers > 0 else False,
+    collate_fn=collate_fn
 )
 
 # ========================
@@ -836,7 +1230,9 @@ class LitRNNClassifier(pl.LightningModule):
     def __init__(self, input_dim, hidden_dim, num_layers, num_classes, lr, weight_decay, dropout, 
                  loss_fn="bce", loss_margin=0.1, gamma_pos=0.0, gamma_neg=4.0, wu_weight=0.5, bce_weight=0.5,
                  feature_mode="wav2vec", window_size=1024, hop_size=512, use_scheduler=False,
-                 bptt_length=50, use_attention=False, use_bidirectional=False, attention_heads=8):
+                 bptt_length=50, use_attention=False, use_bidirectional=False, attention_heads=8, model_type="gru",
+                 conv_channels=[64, 128, 256], conv_kernel_size=3, conv_stride=1,
+                 window_aggregation="mean"):
         super().__init__()
         self.save_hyperparameters()
         self.feature_mode = feature_mode
@@ -845,6 +1241,8 @@ class LitRNNClassifier(pl.LightningModule):
         self.bptt_length = bptt_length
         self.use_attention = use_attention
         self.use_bidirectional = use_bidirectional
+        self.model_type = model_type
+        self.window_aggregation = window_aggregation
         
         # Feature extraction layers (for both modes to maintain consistency)
         if feature_mode == "raw":
@@ -871,6 +1269,29 @@ class LitRNNClassifier(pl.LightningModule):
             ])
             # Update input dimension for GRU
             gru_input_dim = 768
+        elif feature_mode == "mel":
+            # MEL spectrogram mode: project n_mels -> 768 features for consistency with wav2vec
+            # Use reduced dropout in feature extractor to prevent vanishing gradients
+            feature_dropout = max(0.05, dropout * 0.3)  # Same dropout strategy
+            
+            # Project MEL features to 768 dimensions (matching wav2vec embedding dimension)
+            self.feature_extractor = nn.ModuleList([
+                nn.Linear(input_dim, 768),  # n_mels -> 768
+            ])
+            
+            # Normalization and activation layers
+            self.feature_norms = nn.ModuleList([
+                nn.LayerNorm(768)
+            ])
+            
+            self.feature_activations = nn.ModuleList([
+                nn.LeakyReLU(0.1)
+            ])
+            
+            self.feature_dropouts = nn.ModuleList([
+                nn.Dropout(feature_dropout)
+            ])
+            gru_input_dim = 768
         else:
             # Wav2Vec mode: add a lightweight feature projection layer for consistency
             # This ensures both architectures have similar structure and training dynamics
@@ -896,29 +1317,87 @@ class LitRNNClassifier(pl.LightningModule):
             ])
             gru_input_dim = input_dim
         
-        # Only apply dropout if num_layers > 1
-        gru_dropout = dropout if num_layers > 1 else 0
-        self.gru = nn.GRU(
-            gru_input_dim, 
-            hidden_dim, 
-            num_layers, 
-            batch_first=True, 
-            dropout=gru_dropout,
-            bidirectional=use_bidirectional
-        )
-        
-        # Adjust hidden dimension for bidirectional
-        gru_output_dim = hidden_dim * 2 if use_bidirectional else hidden_dim
-        
-        # Add temporal attention mechanism
-        if use_attention:
+        # Initialize model architecture based on model_type
+        if model_type == "crnn":
+            # CRNN model: Convolutional layers + GRU
+            if feature_mode not in ["wav2vec", "mel"]:
+                raise ValueError("CRNN model currently only supports wav2vec or mel feature modes")
+            
+            # Build 1D convolutional layers for temporal feature extraction
+            # For wav2vec: Input is (batch_size, seq_len, 768) -> Conv1D along temporal dimension
+            # For MEL: Input is (batch_size, n_mels, time_frames) -> Conv1D along temporal dimension
+            conv_layers = []
+            if feature_mode == "mel":
+                in_channels = input_dim  # n_mels for MEL spectrograms
+            else:
+                in_channels = gru_input_dim  # 768 for wav2vec
+            
+            for i, out_channels in enumerate(conv_channels):
+                conv_layers.extend([
+                    nn.Conv1d(
+                        in_channels=in_channels,
+                        out_channels=out_channels,
+                        kernel_size=conv_kernel_size,
+                        stride=conv_stride,
+                        padding=conv_kernel_size // 2  # Same padding
+                    ),
+                    nn.BatchNorm1d(out_channels),
+                    nn.ReLU(),
+                    nn.Dropout(dropout * 0.5)  # Reduced dropout for conv layers
+                ])
+                in_channels = out_channels
+            
+            self.conv_layers = nn.Sequential(*conv_layers)
+            conv_output_dim = conv_channels[-1]  # Output dimension from conv layers
+            
+            # GRU after convolutions
+            gru_dropout = dropout if num_layers > 1 else 0
+            self.gru = nn.GRU(
+                conv_output_dim, 
+                hidden_dim, 
+                num_layers, 
+                batch_first=True, 
+                dropout=gru_dropout,
+                bidirectional=use_bidirectional
+            )
+            # Adjust hidden dimension for bidirectional
+            gru_output_dim = hidden_dim * 2 if use_bidirectional else hidden_dim
+            
+        elif model_type == "attention":
+            # Attention-only model: no GRU, just attention
             self.attention = nn.MultiheadAttention(
+                embed_dim=gru_input_dim,
+                num_heads=attention_heads,
+                dropout=dropout,
+                batch_first=True
+            )
+            self.attention_norm = nn.LayerNorm(gru_input_dim)
+            # Set output dimension for classifier
+            gru_output_dim = gru_input_dim
+        else:
+            # GRU model (original)
+            # Only apply dropout if num_layers > 1
+            gru_dropout = dropout if num_layers > 1 else 0
+            self.gru = nn.GRU(
+                gru_input_dim, 
+                hidden_dim, 
+                num_layers, 
+                batch_first=True, 
+                dropout=gru_dropout,
+                bidirectional=use_bidirectional
+            )
+            # Adjust hidden dimension for bidirectional
+            gru_output_dim = hidden_dim * 2 if use_bidirectional else hidden_dim
+        
+        # Add temporal attention mechanism (only for GRU mode)
+        if use_attention and model_type == "gru":
+            self.temporal_attention = nn.MultiheadAttention(
                 embed_dim=gru_output_dim,
                 num_heads=attention_heads,
                 dropout=dropout,
                 batch_first=True
             )
-            self.attention_norm = nn.LayerNorm(gru_output_dim)
+            self.temporal_attention_norm = nn.LayerNorm(gru_output_dim)
         
         # Enhanced classifier with residual connections
         self.fc = nn.Sequential(
@@ -971,7 +1450,65 @@ class LitRNNClassifier(pl.LightningModule):
         self.auc = MultilabelAUROC(num_labels=num_classes, average="macro")
         self.training_step_outputs = []
 
-    def forward(self, x):
+    def forward(self, x, window_masks=None):
+        """
+        Forward pass with support for sliding windows.
+        
+        Args:
+            x: Input tensor. If window_masks is provided, shape is (batch_size, max_windows, ...)
+               Otherwise, shape is (batch_size, ...) for single-window samples
+            window_masks: Optional (batch_size, max_windows) boolean tensor indicating real vs padded windows
+        
+        Returns:
+            output: (batch_size, num_classes) tensor
+        """
+        # Check if we have windowed input (window_masks provided or x has 3+ dims indicating windows)
+        has_windows = window_masks is not None or (len(x.shape) > 2 and x.shape[1] > 1)
+        
+        if has_windows and window_masks is not None:
+            # Process windowed input
+            batch_size, max_windows = x.shape[0], x.shape[1]
+            
+            # Reshape to process all windows: (batch_size * max_windows, ...)
+            x_flat = x.view(batch_size * max_windows, *x.shape[2:])
+            
+            # Process all windows
+            preds_flat = self._forward_single(x_flat)  # (batch_size * max_windows, num_classes)
+            
+            # Reshape back: (batch_size, max_windows, num_classes)
+            preds = preds_flat.view(batch_size, max_windows, -1)
+            
+            # Aggregate predictions per sample (mask out padding)
+            window_masks_expanded = window_masks.unsqueeze(-1).float()  # (batch_size, max_windows, 1)
+            preds = preds * window_masks_expanded
+            
+            # Aggregate based on method
+            if self.window_aggregation == "mean":
+                num_real_windows = window_masks.sum(dim=1, keepdim=True).float()  # (batch_size, 1)
+                aggregated = preds.sum(dim=1) / (num_real_windows + 1e-8)  # (batch_size, num_classes)
+            elif self.window_aggregation == "max":
+                aggregated = preds.max(dim=1)[0]  # (batch_size, num_classes)
+            elif self.window_aggregation == "attention":
+                # Use attention to weight windows
+                # Simple attention: use mean of features to compute attention weights
+                attention_scores = torch.mean(preds, dim=-1)  # (batch_size, max_windows)
+                attention_scores = attention_scores * window_masks.float()  # Mask out padding
+                attention_weights = torch.softmax(attention_scores, dim=1).unsqueeze(-1)  # (batch_size, max_windows, 1)
+                aggregated = (preds * attention_weights).sum(dim=1)  # (batch_size, num_classes)
+            else:
+                raise ValueError(f"Unknown window aggregation method: {self.window_aggregation}")
+            
+            return aggregated
+        else:
+            # Single window per sample (original behavior or single window in batch)
+            # If x has window dimension but only 1 window, squeeze it
+            if len(x.shape) > 2 and x.shape[1] == 1:
+                x = x.squeeze(1)
+            
+            return self._forward_single(x)
+    
+    def _forward_single(self, x):
+        """Forward pass for a single window (original implementation)."""
         # Apply feature extraction for both modes to maintain consistency
         if self.feature_mode == "raw":
             # x shape: (batch_size, audio_length)
@@ -1010,22 +1547,55 @@ class LitRNNClassifier(pl.LightningModule):
                     print(f"⚠️ Warning: Feature extractor output is near zero! Max abs value: {torch.abs(x).max():.6f}")
                 print(f"🔍 Raw audio: {audio_length} samples -> {num_windows} windows -> {x.shape}")
             
+        elif self.feature_mode == "mel":
+            # MEL spectrogram mode: x is (batch_size, n_mels, time_frames)
+            batch_size, n_mels, time_frames = x.shape
+            
+            if self.model_type == "crnn":
+                # For CRNN with MEL, keep shape as (batch, n_mels, time_frames) for conv layers
+                # No preprocessing needed - go directly to conv layers
+                pass
+            else:
+                # For non-CRNN models with MEL, reshape to (batch, time_frames, n_mels)
+                # This treats each time frame as a sequence element with n_mels features
+                x = x.transpose(1, 2).contiguous()  # (batch_size, time_frames, n_mels) - make contiguous for view
+                batch_size, seq_len, features = x.shape
+                
+                # Apply feature processing
+                x = x.view(batch_size * seq_len, features)
+                x = self.feature_extractor[0](x)
+                x = self.feature_norms[0](x)
+                x = self.feature_activations[0](x)
+                x = self.feature_dropouts[0](x)
+                x = x.view(batch_size, seq_len, -1)
+            
+            # Monitor feature extractor output for vanishing gradients (only occasionally)
+            if hasattr(self, 'training_step_outputs') and len(self.training_step_outputs) % 100 == 0:
+                if torch.all(x == 0) or torch.all(torch.abs(x) < 1e-6):
+                    print(f"⚠️ Warning: Feature extractor output is near zero! Max abs value: {torch.abs(x).max():.6f}")
+                print(f"🔍 MEL: {n_mels} mels x {time_frames} frames -> {x.shape}")
+        
         else:
             # Wav2Vec mode: x is already (batch_size, seq_len, 768)
-            # Apply the same feature processing pattern for consistency
-            batch_size, seq_len, features = x.shape
-            
-            # Reshape for batch processing: (batch_size * seq_len, features)
-            x = x.view(batch_size * seq_len, features)
-            
-            # Apply the same feature processing pattern (lightweight transformation)
-            x = self.feature_extractor[0](x)  # (batch_size * seq_len, features)
-            x = self.feature_norms[0](x)
-            x = self.feature_activations[0](x)
-            x = self.feature_dropouts[0](x)
-            
-            # Reshape back to sequence: (batch_size, seq_len, features)
-            x = x.view(batch_size, seq_len, -1)
+            if self.model_type == "crnn":
+                # For CRNN, skip the feature extractor and go directly to conv layers
+                # x shape: (batch_size, seq_len, 768)
+                batch_size, seq_len, features = x.shape
+            else:
+                # Apply the same feature processing pattern for consistency
+                batch_size, seq_len, features = x.shape
+                
+                # Reshape for batch processing: (batch_size * seq_len, features)
+                x = x.view(batch_size * seq_len, features)
+                
+                # Apply the same feature processing pattern (lightweight transformation)
+                x = self.feature_extractor[0](x)  # (batch_size * seq_len, features)
+                x = self.feature_norms[0](x)
+                x = self.feature_activations[0](x)
+                x = self.feature_dropouts[0](x)
+                
+                # Reshape back to sequence: (batch_size, seq_len, features)
+                x = x.view(batch_size, seq_len, -1)
             
             # Monitor feature extractor output for vanishing gradients (only occasionally)
             if hasattr(self, 'training_step_outputs') and len(self.training_step_outputs) % 100 == 0:
@@ -1038,46 +1608,98 @@ class LitRNNClassifier(pl.LightningModule):
             if torch.all(x == 0) or torch.all(torch.abs(x) < 1e-6):
                 print(f"⚠️ Warning: GRU input is near zero! Max abs value: {torch.abs(x).max():.6f}")
         
-        # Process sequences with BPTT if they're too long (but not for bidirectional GRU)
-        if self.bptt_length > 0 and x.size(1) > self.bptt_length and not self.use_bidirectional:
-            # Truncated BPTT: process in chunks
-            batch_size, seq_len, features = x.shape
-            outputs = []
-            hidden = None
-            
-            for i in range(0, seq_len, self.bptt_length):
-                chunk = x[:, i:i+self.bptt_length, :]
-                chunk_output, hidden = self.gru(chunk, hidden)
+        # Process sequences based on model type
+        if self.model_type == "crnn":
+            # CRNN mode: apply convolutional layers first, then GRU
+            if self.feature_mode == "mel":
+                # MEL mode: x is already (batch_size, n_mels, time_frames)
+                # This is the correct shape for Conv1d (batch, channels, time)
+                # Apply convolutional layers
+                x = self.conv_layers(x)  # (batch_size, conv_channels[-1], time_frames)
                 
-                # Detach hidden state to prevent gradient flow across chunks
-                # This is crucial for truncated BPTT
-                if i + self.bptt_length < seq_len:
-                    # For both unidirectional and bidirectional GRU, hidden is a tuple of tensors
-                    # Each tensor represents the hidden state for each layer
-                    hidden = tuple(h.detach() for h in hidden)
+                # Transpose for GRU: (batch_size, time_frames, conv_channels[-1])
+                x = x.transpose(1, 2)
+            else:
+                # Wav2Vec mode: x shape is (batch_size, seq_len, features)
+                # Conv1d expects (batch_size, channels, seq_len), so transpose
+                x = x.transpose(1, 2)  # (batch_size, features, seq_len)
                 
-                outputs.append(chunk_output)
+                # Apply convolutional layers
+                x = self.conv_layers(x)  # (batch_size, conv_channels[-1], seq_len)
+                
+                # Transpose back for GRU: (batch_size, seq_len, conv_channels[-1])
+                x = x.transpose(1, 2)
             
-            # Concatenate outputs
-            gru_output = torch.cat(outputs, dim=1)
+            # Process with GRU (with BPTT if needed)
+            if self.bptt_length > 0 and x.size(1) > self.bptt_length and not self.use_bidirectional:
+                # Truncated BPTT: process in chunks
+                batch_size, seq_len, features = x.shape
+                outputs = []
+                hidden = None
+                
+                for i in range(0, seq_len, self.bptt_length):
+                    chunk = x[:, i:i+self.bptt_length, :]
+                    chunk_output, hidden = self.gru(chunk, hidden)
+                    
+                    if i + self.bptt_length < seq_len:
+                        hidden = hidden.detach()
+                    
+                    outputs.append(chunk_output)
+                
+                gru_output = torch.cat(outputs, dim=1)
+            else:
+                gru_output, _ = self.gru(x)
+                
+        elif self.model_type == "attention":
+            # Attention-only mode: apply self-attention directly
+            attn_output, _ = self.attention(x, x, x)
+            gru_output = self.attention_norm(x + attn_output)  # Residual connection
         else:
-            # Process entire sequence at once
-            gru_output, _ = self.gru(x)
+            # GRU mode: process sequences with BPTT if they're too long (but not for bidirectional GRU)
+            if self.bptt_length > 0 and x.size(1) > self.bptt_length and not self.use_bidirectional:
+                # Truncated BPTT: process in chunks
+                batch_size, seq_len, features = x.shape
+                outputs = []
+                hidden = None
+                
+                for i in range(0, seq_len, self.bptt_length):
+                    chunk = x[:, i:i+self.bptt_length, :]
+                    chunk_output, hidden = self.gru(chunk, hidden)
+                    
+                    # Detach hidden state to prevent gradient flow across chunks
+                    # This is crucial for truncated BPTT
+                    if i + self.bptt_length < seq_len:
+                        # Detach the hidden state tensor (GRU returns a tensor, not a tuple)
+                        hidden = hidden.detach()
+                    
+                    outputs.append(chunk_output)
+                
+                # Concatenate outputs
+                gru_output = torch.cat(outputs, dim=1)
+            else:
+                # Process entire sequence at once
+                gru_output, _ = self.gru(x)
         
-        # Apply attention mechanism
-        if self.use_attention:
-            attn_output, _ = self.attention(gru_output, gru_output, gru_output)
-            gru_output = self.attention_norm(gru_output + attn_output)
+        # Apply temporal attention mechanism (only for GRU mode)
+        if self.use_attention and self.model_type == "gru":
+            attn_output, _ = self.temporal_attention(gru_output, gru_output, gru_output)
+            gru_output = self.temporal_attention_norm(gru_output + attn_output)
         
-        # Use attention-weighted average instead of just last hidden state
-        if self.use_attention:
-            # Global average pooling with attention weights
+        # Use attention-weighted average or mean pooling based on model type
+        if self.model_type == "attention":
+            # For attention-only model, use attention-weighted pooling
+            attention_weights = torch.softmax(
+                torch.mean(gru_output, dim=-1), dim=1
+            ).unsqueeze(-1)
+            pooled_output = torch.sum(gru_output * attention_weights, dim=1)
+        elif self.use_attention and self.model_type == "gru":
+            # For GRU with temporal attention, use attention-weighted pooling
             attention_weights = torch.softmax(
                 torch.mean(gru_output, dim=-1), dim=1
             ).unsqueeze(-1)
             pooled_output = torch.sum(gru_output * attention_weights, dim=1)
         else:
-            # Use mean pooling instead of just last state
+            # For GRU without temporal attention, use mean pooling
             pooled_output = torch.mean(gru_output, dim=1)
         
         # Monitor GRU output (only occasionally)
@@ -1103,9 +1725,12 @@ class LitRNNClassifier(pl.LightningModule):
             if isinstance(module, nn.Linear):
                 # Use Kaiming initialization for LeakyReLU activations
                 if 'feature_extractor' in name:
-                    # Special initialization for feature extractor layers (both modes)
+                    # Special initialization for feature extractor layers (all modes)
                     if self.feature_mode == "raw":
                         # Raw mode: standard Kaiming initialization
+                        nn.init.kaiming_normal_(module.weight, mode='fan_in', nonlinearity='leaky_relu')
+                    elif self.feature_mode == "mel":
+                        # MEL mode: standard Kaiming initialization (projecting n_mels -> 768)
                         nn.init.kaiming_normal_(module.weight, mode='fan_in', nonlinearity='leaky_relu')
                     else:
                         # Wav2Vec mode: identity-like initialization for the projection layer
@@ -1123,6 +1748,15 @@ class LitRNNClassifier(pl.LightningModule):
                 # Initialize layer norm layers properly
                 nn.init.constant_(module.weight, 1.0)
                 nn.init.constant_(module.bias, 0.0)
+            elif isinstance(module, nn.Conv1d):
+                # Initialize convolutional layers with Kaiming initialization
+                nn.init.kaiming_normal_(module.weight, mode='fan_in', nonlinearity='relu')
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0.0)
+            elif isinstance(module, nn.BatchNorm1d):
+                # Initialize batch norm layers
+                nn.init.constant_(module.weight, 1.0)
+                nn.init.constant_(module.bias, 0.0)
             elif isinstance(module, nn.GRU):
                 for param_name, param in module.named_parameters():
                     if 'weight_ih' in param_name:
@@ -1136,11 +1770,18 @@ class LitRNNClassifier(pl.LightningModule):
                         nn.init.constant_(param, 0.01)
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        # Handle both old format (x, y) and new format (x, y, window_masks)
+        if len(batch) == 3:
+            x, y, window_masks = batch
+        else:
+            x, y = batch
+            window_masks = None
         
         # Validate input data
         if batch_idx == 0:  # Only check first batch to avoid spam
             print(f"🔍 Training batch {batch_idx}: x shape={x.shape}, y shape={y.shape}")
+            if window_masks is not None:
+                print(f"   window_masks shape={window_masks.shape}, num_windows per sample: {window_masks.sum(dim=1).tolist()}")
             print(f"   x range: [{x.min():.4f}, {x.max():.4f}], y range: [{y.min():.4f}, {y.max():.4f}]")
             print(f"   y sum: {y.sum().item()}, y total: {y.numel()}")
             
@@ -1152,7 +1793,7 @@ class LitRNNClassifier(pl.LightningModule):
             if y.sum() > y.numel():
                 print("❌ ERROR: Target sum exceeds total elements (data corruption)!")
         
-        preds = self(x)
+        preds = self(x, window_masks)
         
         # Add safety checks for loss computation
         try:
@@ -1181,11 +1822,18 @@ class LitRNNClassifier(pl.LightningModule):
         self.training_step_outputs.clear()
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        # Handle both old format (x, y) and new format (x, y, window_masks)
+        if len(batch) == 3:
+            x, y, window_masks = batch
+        else:
+            x, y = batch
+            window_masks = None
         
         # Validate input data
         if batch_idx == 0:  # Only check first batch to avoid spam
             print(f"🔍 Validation batch {batch_idx}: x shape={x.shape}, y shape={y.shape}")
+            if window_masks is not None:
+                print(f"   window_masks shape={window_masks.shape}, num_windows per sample: {window_masks.sum(dim=1).tolist()}")
             print(f"   x range: [{x.min():.4f}, {x.max():.4f}], y range: [{y.min():.4f}, {y.max():.4f}]")
             print(f"   y sum: {y.sum().item()}, y total: {y.numel()}")
             
@@ -1197,7 +1845,7 @@ class LitRNNClassifier(pl.LightningModule):
             if y.sum() > y.numel():
                 print("❌ ERROR: Validation target sum exceeds total elements (data corruption)!")
         
-        preds = self(x)
+        preds = self(x, window_masks)
         
         # Add safety checks for loss computation
         try:
@@ -1321,16 +1969,54 @@ class LitRNNClassifier(pl.LightningModule):
 # 8. Training
 # ========================
 # Determine input dimension based on feature mode
+# Note: With sliding windows, dataset returns (num_windows, ...), so we need to get shape from a single window
+sample_data = train_dataset[0][0]
+original_shape = sample_data.shape
+
+# Handle windowed data: if first dimension looks like a window dimension, extract first window
+# For MEL: (1, n_mels, time_frames) or (num_windows, n_mels, time_frames)
+# For raw: (1, audio_length) or (num_windows, audio_length)
+# For wav2vec: (1, seq_len, 768) or (num_windows, seq_len, 768)
+if len(sample_data.shape) >= 2:
+    # Always extract first window to get the actual data shape
+    # This handles both single window (1, ...) and multiple windows (num_windows, ...)
+    sample_data = sample_data[0] if sample_data.shape[0] > 0 else sample_data
+
 if args.feature_mode == "wav2vec":
     # Wav2Vec mode: input is embeddings (768 features)
-    input_dim = train_dataset[0][0].shape[1]
+    if len(sample_data.shape) == 2:
+        input_dim = sample_data.shape[1]  # (seq_len, 768) -> 768
+    else:
+        input_dim = sample_data.shape[-1]  # Handle different shapes
+elif args.feature_mode == "mel":
+    # MEL mode: input is MEL spectrogram (n_mels, time_frames)
+    # For CRNN, we use n_mels as the channel dimension
+    # For other models, we use n_mels as the feature dimension per time frame
+    # After extracting window, shape should be (n_mels, time_frames)
+    if len(sample_data.shape) == 2:
+        input_dim = sample_data.shape[0]  # n_mels (first dimension)
+    elif len(sample_data.shape) == 1:
+        # Fallback: if somehow 1D, use the length
+        input_dim = sample_data.shape[0]
+    else:
+        # If still has 3+ dimensions, take first non-batch dimension
+        input_dim = sample_data.shape[0]
 else:
     # Raw audio mode: input is raw audio samples
-    input_dim = train_dataset[0][0].shape[0]  # audio length
+    # For sliding windows, this is the window size, not the full audio length
+    # After extracting window, shape should be (audio_length,)
+    input_dim = sample_data.shape[0]  # window size or audio length
 
 print(f"🔹 Feature mode: {args.feature_mode}")
+print(f"🔹 Sample data shape (before processing): {original_shape}")
+print(f"🔹 Sample data shape (after processing): {sample_data.shape}")
 print(f"🔹 Input dimension: {input_dim}")
 print(f"🔹 Number of classes: {train_dataset[0][1].shape[0]}")
+print(f"🔹 Model type: {args.model_type}")
+if args.model_type == "crnn":
+    print(f"🔹 CRNN conv channels: {args.conv_channels}")
+    print(f"🔹 CRNN kernel size: {args.conv_kernel_size}")
+    print(f"🔹 CRNN stride: {args.conv_stride}")
 print(f"🔹 BPTT length: {args.bptt_length}")
 print(f"🔹 Use attention: {args.use_attention}")
 print(f"🔹 Use bidirectional: {args.use_bidirectional}")
@@ -1357,7 +2043,12 @@ model = LitRNNClassifier(
     bptt_length=args.bptt_length,
     use_attention=args.use_attention,
     use_bidirectional=args.use_bidirectional,
-    attention_heads=args.attention_heads
+    attention_heads=args.attention_heads,
+    model_type=args.model_type,
+    conv_channels=args.conv_channels,
+    conv_kernel_size=args.conv_kernel_size,
+    conv_stride=args.conv_stride,
+    window_aggregation=args.window_aggregation
 )
 
 checkpoint_callback = ModelCheckpoint(

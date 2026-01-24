@@ -22,7 +22,25 @@ set -e  # Exit on any error
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate audio-classification
 
-python run_birdclef_experiment.py --audio_dir ./birdclef_data/train_audio --csv_path ./birdclef_data/birdclef_2023_dataset.csv --save_dir "birdclef_020" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
-python run_birdclef_experiment.py --audio_dir ./birdclef_data/train_audio --csv_path ./birdclef_data/birdclef_2023_dataset.csv --save_dir "birdclef_021" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "wu_auc" --num_workers 4 --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
+python run_experiment_dino_lightning.py \
+  --save_dir "complete_dino_002" \
+  --dino_pretrain_epochs 200 \
+  --finetune_epochs 500 \
+  --eval_interval 10 \
+  --log_interval 10 \
+  --lr 1e-4 \
+  --weight_decay 1e-5 \
+  --gradient_clip_val 10.0 \
+  --batch_size 100 \
+  --use_gpu \
+  --test_size 0.1 \
+  --dropout 0.1 \
+  --num_workers 4 \
+  --conv_channels 64 128 256 \
+  --conv_kernel_size 3 \
+  --conv_stride 1 \
+  --dataset_type "complete" \
+  --bptt_length 60 \
+  --labeled_ratio 0.1
 
 conda deactivate

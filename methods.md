@@ -60,6 +60,50 @@ https://www.erikdrysdale.com/auc_max/
 
 ---
 
+## 5. 🔹 **Evaluation Metrics: mAP and PR-AUC**
+
+### **Average Precision (AP) and mean Average Precision (mAP)**
+
+For multi-label classification, **Average Precision (AP)** measures the area under the **Precision-Recall curve** for each class independently. The **mean Average Precision (mAP)** is the average of AP across all classes.
+
+For a single class $i$:
+
+1. Sort all predictions by their predicted probability $p_i$ in descending order.
+2. Compute precision and recall at each threshold:
+   - **Precision** at threshold $t$: $P(t) = \frac{\text{TP}(t)}{\text{TP}(t) + \text{FP}(t)}$
+   - **Recall** at threshold $t$: $R(t) = \frac{\text{TP}(t)}{\text{TP}(t) + \text{FN}(t)}$
+3. The **AP** for class $i$ is the area under the Precision-Recall curve:
+   $$
+   \text{AP}_i = \int_0^1 P(R) \, dR
+   $$
+   In practice, this is approximated using the trapezoidal rule over discrete thresholds.
+
+4. The **mAP** is the mean over all classes:
+   $$
+   \text{mAP} = \frac{1}{C} \sum_{i=1}^C \text{AP}_i
+   $$
+
+### **Precision-Recall AUC (PR-AUC)**
+
+**PR-AUC** (Precision-Recall Area Under Curve) is the area under the Precision-Recall curve. For **multi-label classification**, PR-AUC is computed per class and then averaged, which is **equivalent to mAP**:
+
+$$
+\text{PR-AUC} = \frac{1}{C} \sum_{i=1}^C \int_0^1 P_i(R_i) \, dR_i = \text{mAP}
+$$
+
+**Key points:**
+* **mAP = PR-AUC** for multi-label classification (they are the same metric).
+* Both metrics are **threshold-independent** and evaluate ranking quality.
+* They are particularly useful for **imbalanced datasets** where ROC-AUC can be misleading.
+* Higher values indicate better performance (range: [0, 1]).
+
+**Interpretation:**
+* **mAP/PR-AUC = 1.0**: Perfect ranking (all positives ranked above all negatives).
+* **mAP/PR-AUC = 0.5**: Random ranking.
+* **mAP/PR-AUC < 0.5**: Worse than random (model is systematically wrong).
+
+---
+
 ## Summary Table
 
 | Loss     | Formula                                                               | Highlights                                                |

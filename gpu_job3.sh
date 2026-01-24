@@ -22,7 +22,6 @@ set -e  # Exit on any error
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate audio-classification
 
-python run_birdclef_experiment.py --audio_dir ./birdclef_data/train_audio --csv_path ./birdclef_data/birdclef_2023_dataset.csv --save_dir "birdclef_024" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_asymmetric_bce" --bce_weight 0.1 --gamma_pos 1.0 --gamma_neg 4.0 --num_workers 4 --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
-python run_birdclef_experiment.py --audio_dir ./birdclef_data/train_audio --csv_path ./birdclef_data/birdclef_2023_dataset.csv --save_dir "birdclef_025" --epochs 500 --eval_interval 10 --log_interval 10 --lr 1e-5 --weight_decay 1e-6 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "combined_wu_bce" --wu_weight 0.9 --bce_weight 0.1 --num_workers 4 --use_bidirectional --use_attention --bptt_length 30 --attention_heads 8 --gradient_accumulation_steps 2
+python run_experiment_gru_lightning.py --save_dir "mel_gru_attn_001" --epochs 200 --eval_interval 10 --log_interval 10 --lr 1e-4 --weight_decay 1e-5 --gradient_clip_val 10.0 --batch_size 100 --use_gpu --test_size 0.1 --dropout 0.1 --loss_fn "bce" --num_workers 4 --feature_mode "mel" --model_type "gru" --use_attention --attention_heads 8 --n_mels 128 --n_fft 2048 --hop_length 512
 
 conda deactivate
