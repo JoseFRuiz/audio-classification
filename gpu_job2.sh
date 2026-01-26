@@ -23,9 +23,9 @@ source ~/anaconda3/etc/profile.d/conda.sh
 conda activate audio-classification
 
 python run_experiment_dino_lightning.py \
-  --save_dir "supervised_only_001" \
-  --supervised_only \
+  --save_dir "complete_dino_003" \
   --freeze_backbone \
+  --dino_pretrain_epochs 100 \
   --finetune_epochs 500 \
   --eval_interval 10 \
   --log_interval 10 \
@@ -42,7 +42,6 @@ python run_experiment_dino_lightning.py \
   --conv_stride 1 \
   --dataset_type "complete" \
   --bptt_length 60 \
-  --labeled_ratio 0.1 \
-  --init_weights xavier
+  --labeled_ratio 0.1
 
 conda deactivate
