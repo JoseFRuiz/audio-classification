@@ -115,6 +115,64 @@
 #   --bptt_length 60 \
 #   --labeled_ratio 0.1
 
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_001" \
+#   --use_dinov2 \
+#   --dino_pretrain_epochs 100 \
+#   --finetune_epochs 200 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 0.1
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_001" \
+#   --use_dinov2 \
+#   --skip_dino_pretrain \
+#   --resume_from_checkpoint "complete_dinov2_001/best-checkpoint.ckpt" \
+#   --finetune_epochs 500 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 0.1
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_002" \
+#   --use_dinov2 \
+#   --dino_pretrain_epochs 200 \
+#   --finetune_epochs 500 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 0.1
+
 import os
 import argparse
 import numpy as np
@@ -277,6 +335,49 @@ class DINOAugmentation:
                 local_view = self.cutmix(local_view, spec2, self.mixup_alpha)
         
         return global_view, local_view
+    
+    def create_masked_view(self, spec, mask_ratio=0.6, patch_size_time=8, patch_size_freq=4):
+        """
+        Create a masked view for iBOT (DINOv2).
+        
+        Args:
+            spec: (n_mels, time_frames) spectrogram
+            mask_ratio: Ratio of patches to mask
+            patch_size_time: Time dimension of each patch
+            patch_size_freq: Frequency dimension of each patch
+        
+        Returns:
+            masked_spec: (n_mels, time_frames) masked spectrogram
+            mask: (num_patches_time, num_patches_freq) boolean mask (True = masked)
+        """
+        n_mels, time_frames = spec.shape
+        
+        # Calculate number of patches
+        num_patches_time = (time_frames + patch_size_time - 1) // patch_size_time
+        num_patches_freq = (n_mels + patch_size_freq - 1) // patch_size_freq
+        
+        # Create mask for patches
+        num_patches = num_patches_time * num_patches_freq
+        num_masked = int(num_patches * mask_ratio)
+        
+        # Randomly select patches to mask
+        patch_indices = np.random.permutation(num_patches)[:num_masked]
+        mask = np.zeros(num_patches, dtype=bool)
+        mask[patch_indices] = True
+        mask = mask.reshape(num_patches_freq, num_patches_time)
+        
+        # Apply mask to spectrogram
+        masked_spec = spec.copy()
+        for f_idx in range(num_patches_freq):
+            for t_idx in range(num_patches_time):
+                if mask[f_idx, t_idx]:
+                    f_start = f_idx * patch_size_freq
+                    f_end = min(f_start + patch_size_freq, n_mels)
+                    t_start = t_idx * patch_size_time
+                    t_end = min(t_start + patch_size_time, time_frames)
+                    masked_spec[f_start:f_end, t_start:t_end] = 0
+        
+        return masked_spec, mask
 
 
 # ========================
@@ -287,7 +388,7 @@ class MELSpectrogramDataset(Dataset):
     
     def __init__(self, audio_dir, clip_ids, labels, indices=None, is_train=True, test_size=0.1, random_state=42,
                  target_length=160000, sample_rate=16000, n_mels=128, n_fft=2048, hop_length=512,
-                 use_dino_aug=False, augmentation=None, return_label=True):
+                 use_dino_aug=False, augmentation=None, return_label=True, use_dinov2=False, mask_ratio=0.6):
         self.audio_dir = audio_dir
         self.target_length = target_length
         self.sample_rate = sample_rate
@@ -298,11 +399,15 @@ class MELSpectrogramDataset(Dataset):
         self.use_dino_aug = use_dino_aug
         self.augmentation = augmentation
         self.return_label = return_label
+        self.use_dinov2 = use_dinov2
+        self.mask_ratio = mask_ratio
         
         print(f"🔹 Looking for raw audio files in: {os.path.abspath(audio_dir)}")
         print(f"🔹 MEL parameters: n_mels={n_mels}, n_fft={n_fft}, hop_length={hop_length}")
         if use_dino_aug:
             print(f"🔹 DINO augmentation enabled")
+        if use_dinov2:
+            print(f"🔹 DINOv2 mode enabled (with iBOT loss)")
         
         # Store the pre-filtered data
         self.clip_ids = np.array(clip_ids)
@@ -419,10 +524,23 @@ class MELSpectrogramDataset(Dataset):
                 global_tensor = torch.tensor(global_view, dtype=torch.float32)
                 local_tensor = torch.tensor(local_view, dtype=torch.float32)
                 
-                if self.return_label and label is not None:
-                    return global_tensor, local_tensor, torch.tensor(label, dtype=torch.float32)
+                # For DINOv2: create masked view and mask
+                if self.use_dinov2 and self.augmentation is not None:
+                    masked_view, mask = self.augmentation.create_masked_view(
+                        local_view, mask_ratio=self.mask_ratio
+                    )
+                    masked_tensor = torch.tensor(masked_view, dtype=torch.float32)
+                    mask_tensor = torch.tensor(mask, dtype=torch.bool)
+                    
+                    if self.return_label and label is not None:
+                        return global_tensor, local_tensor, masked_tensor, mask_tensor, torch.tensor(label, dtype=torch.float32)
+                    else:
+                        return global_tensor, local_tensor, masked_tensor, mask_tensor
                 else:
-                    return global_tensor, local_tensor
+                    if self.return_label and label is not None:
+                        return global_tensor, local_tensor, torch.tensor(label, dtype=torch.float32)
+                    else:
+                        return global_tensor, local_tensor
             else:
                 # No augmentation: return single view
                 mel_tensor = torch.tensor(mel_spec_db, dtype=torch.float32)
@@ -534,15 +652,19 @@ class CRNNBackbone(nn.Module):
                         nn.init.zeros_(param)
         
     
-    def forward(self, x):
+    def forward(self, x, return_patch_features=False):
         """
         Forward pass through CRNN backbone.
         
         Args:
             x: Input tensor of shape (batch_size, n_mels, time_frames)
+            return_patch_features: If True, return patch-level features for iBOT
         
         Returns:
-            features: (batch_size, hidden_dim) tensor
+            features: (batch_size, hidden_dim) tensor if return_patch_features=False
+            (pooled_features, patch_features): tuple if return_patch_features=True
+                - pooled_features: (batch_size, hidden_dim) global features
+                - patch_features: (batch_size, seq_len, hidden_dim) patch-level features
         """
         # MEL mode: x is already (batch_size, n_mels, time_frames)
         # This is the correct shape for Conv1d (batch, channels, time)
@@ -575,7 +697,10 @@ class CRNNBackbone(nn.Module):
         # Mean pooling over time dimension
         pooled_output = torch.mean(gru_output, dim=1)  # (batch_size, hidden_dim)
         
-        return pooled_output
+        if return_patch_features:
+            return pooled_output, gru_output  # (batch_size, hidden_dim), (batch_size, seq_len, hidden_dim)
+        else:
+            return pooled_output
 
 
 # ========================
@@ -641,6 +766,92 @@ def dino_loss(student_output, teacher_output, center, temperature=0.07):
     
     # Cross-entropy loss
     loss = -torch.sum(teacher_probs * student_log_probs, dim=-1).mean()
+    
+    return loss
+
+
+# ========================
+# 5b. iBOT Loss Function (for DINOv2)
+# ========================
+def ibot_loss(student_patch_output, teacher_patch_output, mask, center, temperature=0.07):
+    """
+    Compute iBOT loss for masked spectrogram modeling (patch-level).
+    
+    Args:
+        student_patch_output: (batch_size, num_patches, proj_dim) student patch outputs
+        teacher_patch_output: (batch_size, num_patches, proj_dim) teacher patch outputs
+        mask: (batch_size, num_patches) boolean mask (True = masked, False = visible)
+        center: (proj_dim,) running center for teacher outputs
+        temperature: Temperature for sharpening teacher softmax
+    
+    Returns:
+        loss: Scalar loss value
+    """
+    # Only compute loss on masked patches
+    if mask.sum() == 0:
+        return torch.tensor(0.0, device=student_patch_output.device, requires_grad=True)
+    
+    # Flatten batch and sequence dimensions: (batch_size, num_patches, proj_dim) -> (batch_size * num_patches, proj_dim)
+    batch_size, num_patches, proj_dim = student_patch_output.shape
+    student_flat = student_patch_output.reshape(batch_size * num_patches, proj_dim)
+    teacher_flat = teacher_patch_output.reshape(batch_size * num_patches, proj_dim)
+    mask_flat = mask.reshape(batch_size * num_patches)
+    
+    # Select only masked patches
+    student_masked = student_flat[mask_flat]  # (num_masked, proj_dim)
+    teacher_masked = teacher_flat[mask_flat]  # (num_masked, proj_dim)
+    
+    if student_masked.size(0) == 0:
+        return torch.tensor(0.0, device=student_patch_output.device, requires_grad=True)
+    
+    # Apply centering to teacher output
+    teacher_masked = teacher_masked - center
+    
+    # Sharpening: apply temperature to teacher
+    teacher_out = teacher_masked / temperature
+    teacher_probs = F.softmax(teacher_out, dim=-1)
+    
+    # Student output (no temperature for student)
+    student_log_probs = F.log_softmax(student_masked, dim=-1)
+    
+    # Cross-entropy loss
+    loss = -torch.sum(teacher_probs * student_log_probs, dim=-1).mean()
+    
+    return loss
+
+
+# ========================
+# 5c. KoLeo Regularizer (for DINOv2)
+# ========================
+def koleo_regularizer(features, eps=1e-8):
+    """
+    KoLeo regularizer: promotes uniform spreading of features.
+    
+    Args:
+        features: (batch_size, feature_dim) feature tensor
+        eps: Small epsilon for numerical stability
+    
+    Returns:
+        loss: Scalar regularization value
+    """
+    # Normalize features
+    features_norm = F.normalize(features, p=2, dim=-1)
+    
+    # Compute pairwise distances
+    # features_norm: (batch_size, feature_dim)
+    # Compute (batch_size, batch_size) distance matrix
+    pairwise_dist = torch.cdist(features_norm, features_norm, p=2)  # (batch_size, batch_size)
+    
+    # Add small epsilon to avoid log(0)
+    pairwise_dist = pairwise_dist + eps
+    
+    # Compute log of distances (excluding diagonal)
+    mask = ~torch.eye(pairwise_dist.size(0), dtype=torch.bool, device=pairwise_dist.device)
+    log_distances = torch.log(pairwise_dist[mask])
+    
+    # KoLeo loss: negative mean of log distances (encourages larger distances)
+    # We want to maximize distances, so we minimize negative mean
+    loss = -log_distances.mean()
     
     return loss
 
@@ -807,9 +1018,13 @@ class DINOModel(pl.LightningModule):
     
     def on_train_epoch_end(self):
         """Log average training loss for the epoch."""
-        avg_loss = sum(self.training_step_outputs) / len(self.training_step_outputs)
-        self.log('dino_loss_epoch', avg_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.training_step_outputs.clear()
+        if len(self.training_step_outputs) > 0:
+            avg_loss = sum(self.training_step_outputs) / len(self.training_step_outputs)
+            self.log('dino_loss_epoch', avg_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.training_step_outputs.clear()
+        else:
+            # No training steps executed (e.g., when resuming from checkpoint)
+            self.training_step_outputs.clear()
     
     def configure_optimizers(self):
         """Configure optimizer for DINO training."""
@@ -824,6 +1039,332 @@ class DINOModel(pl.LightningModule):
         # Also optimize projection head
         optimizer.add_param_group({
             'params': self.student_proj.parameters(),
+            'lr': self.hparams.lr,
+            'weight_decay': self.hparams.weight_decay
+        })
+        
+        return optimizer
+
+
+# ========================
+# 6b. DINOv2 Model (Lightning Module) - Combines DINO and iBOT
+# ========================
+class DINOv2Model(pl.LightningModule):
+    """DINOv2 model combining DINO (global) and iBOT (patch-level) self-supervised learning."""
+    
+    def __init__(self, input_dim, hidden_dim, num_layers, dropout, lr, weight_decay,
+                 conv_channels=[64, 128, 256], conv_kernel_size=3, conv_stride=1,
+                 bptt_length=60, use_bidirectional=False,
+                 teacher_hidden_dim=None, teacher_num_layers=None,
+                 dino_momentum=0.996, dino_temperature=0.07, dino_center_momentum=0.9,
+                 dino_proj_dim=256, dino_proj_layers=3,
+                 ibot_weight=1.0, koleo_weight=0.04, mask_ratio=0.6):
+        super().__init__()
+        self.save_hyperparameters()
+        
+        # Student network
+        self.student_backbone = CRNNBackbone(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            num_layers=num_layers,
+            dropout=dropout,
+            conv_channels=conv_channels,
+            conv_kernel_size=conv_kernel_size,
+            conv_stride=conv_stride,
+            bptt_length=bptt_length,
+            use_bidirectional=use_bidirectional
+        )
+        
+        # Global projection head (for DINO loss)
+        self.student_proj = ProjectionHead(
+            in_dim=self.student_backbone.output_dim,
+            out_dim=dino_proj_dim,
+            num_layers=dino_proj_layers
+        )
+        
+        # Patch-level projection head (for iBOT loss)
+        self.student_patch_proj = ProjectionHead(
+            in_dim=self.student_backbone.output_dim,
+            out_dim=dino_proj_dim,
+            num_layers=dino_proj_layers
+        )
+        
+        # Teacher network (same architecture, will be updated via EMA)
+        teacher_hidden = teacher_hidden_dim if teacher_hidden_dim is not None else hidden_dim
+        teacher_layers = teacher_num_layers if teacher_num_layers is not None else num_layers
+        
+        self.teacher_backbone = CRNNBackbone(
+            input_dim=input_dim,
+            hidden_dim=teacher_hidden,
+            num_layers=teacher_layers,
+            dropout=dropout,
+            conv_channels=conv_channels,
+            conv_kernel_size=conv_kernel_size,
+            conv_stride=conv_stride,
+            bptt_length=bptt_length,
+            use_bidirectional=use_bidirectional
+        )
+        
+        # Global projection head for teacher
+        self.teacher_proj = ProjectionHead(
+            in_dim=self.teacher_backbone.output_dim,
+            out_dim=dino_proj_dim,
+            num_layers=dino_proj_layers
+        )
+        
+        # Patch-level projection head for teacher
+        self.teacher_patch_proj = ProjectionHead(
+            in_dim=self.teacher_backbone.output_dim,
+            out_dim=dino_proj_dim,
+            num_layers=dino_proj_layers
+        )
+        
+        # Initialize teacher with student weights
+        self._init_teacher()
+        
+        # Freeze teacher (only update via EMA)
+        for param in self.teacher_backbone.parameters():
+            param.requires_grad = False
+        for param in self.teacher_proj.parameters():
+            param.requires_grad = False
+        for param in self.teacher_patch_proj.parameters():
+            param.requires_grad = False
+        
+        # Centering buffer
+        self.register_buffer('center', torch.zeros(dino_proj_dim))
+        self.register_buffer('patch_center', torch.zeros(dino_proj_dim))
+        
+        # DINOv2 hyperparameters
+        self.dino_momentum = dino_momentum
+        self.dino_temperature = dino_temperature
+        self.dino_center_momentum = dino_center_momentum
+        self.ibot_weight = ibot_weight
+        self.koleo_weight = koleo_weight
+        self.mask_ratio = mask_ratio
+        
+        self.training_step_outputs = []
+    
+    def _init_teacher(self):
+        """Initialize teacher network with student weights."""
+        with torch.no_grad():
+            # Copy student backbone to teacher backbone
+            for student_param, teacher_param in zip(
+                self.student_backbone.parameters(), 
+                self.teacher_backbone.parameters()
+            ):
+                teacher_param.data.copy_(student_param.data)
+            
+            # Copy student projections to teacher projections
+            for student_param, teacher_param in zip(
+                self.student_proj.parameters(), 
+                self.teacher_proj.parameters()
+            ):
+                teacher_param.data.copy_(student_param.data)
+            
+            for student_param, teacher_param in zip(
+                self.student_patch_proj.parameters(), 
+                self.teacher_patch_proj.parameters()
+            ):
+                teacher_param.data.copy_(student_param.data)
+    
+    def forward(self, x, is_teacher=False, return_patch_features=False):
+        """
+        Forward pass.
+        
+        Args:
+            x: Input tensor (batch_size, n_mels, time_frames)
+            is_teacher: If True, use teacher network, else use student
+            return_patch_features: If True, return patch-level features for iBOT
+        
+        Returns:
+            output: (batch_size, proj_dim) projection output if return_patch_features=False
+            (global_output, patch_output): tuple if return_patch_features=True
+        """
+        if is_teacher:
+            with torch.no_grad():
+                if return_patch_features:
+                    pooled_features, patch_features = self.teacher_backbone(x, return_patch_features=True)
+                    global_output = self.teacher_proj(pooled_features)
+                    # Reshape patch features for projection head: (batch_size, seq_len, hidden_dim) -> (batch_size * seq_len, hidden_dim)
+                    batch_size, seq_len, hidden_dim = patch_features.shape
+                    patch_features_flat = patch_features.view(batch_size * seq_len, hidden_dim)
+                    patch_output_flat = self.teacher_patch_proj(patch_features_flat)
+                    # Reshape back: (batch_size * seq_len, proj_dim) -> (batch_size, seq_len, proj_dim)
+                    patch_output = patch_output_flat.view(batch_size, seq_len, -1)
+                    return global_output, patch_output
+                else:
+                    features = self.teacher_backbone(x)
+                    output = self.teacher_proj(features)
+                    return output
+        else:
+            if return_patch_features:
+                pooled_features, patch_features = self.student_backbone(x, return_patch_features=True)
+                global_output = self.student_proj(pooled_features)
+                # Reshape patch features for projection head: (batch_size, seq_len, hidden_dim) -> (batch_size * seq_len, hidden_dim)
+                batch_size, seq_len, hidden_dim = patch_features.shape
+                patch_features_flat = patch_features.view(batch_size * seq_len, hidden_dim)
+                patch_output_flat = self.student_patch_proj(patch_features_flat)
+                # Reshape back: (batch_size * seq_len, proj_dim) -> (batch_size, seq_len, proj_dim)
+                patch_output = patch_output_flat.view(batch_size, seq_len, -1)
+                return global_output, patch_output
+            else:
+                features = self.student_backbone(x)
+                output = self.student_proj(features)
+                return output
+    
+    def training_step(self, batch, batch_idx):
+        """Training step for DINOv2 pretraining."""
+        # Batch contains (global_view, local_view, masked_view, mask) for unlabeled data
+        if len(batch) == 4:
+            global_view, local_view, masked_view, mask = batch
+        else:
+            # Fallback to DINO-only mode if mask not provided
+            global_view, local_view = batch
+            masked_view = None
+            mask = None
+        
+        # Forward pass for global features (DINO loss)
+        student_local_global = self.forward(local_view, is_teacher=False, return_patch_features=False)
+        teacher_global_global = self.forward(global_view, is_teacher=True, return_patch_features=False)
+        
+        # Compute DINO loss (global)
+        dino_loss_val = dino_loss(
+            student_local_global, 
+            teacher_global_global, 
+            self.center, 
+            temperature=self.dino_temperature
+        )
+        
+        # Forward pass for patch features (iBOT loss)
+        ibot_loss_val = torch.tensor(0.0, device=dino_loss_val.device)
+        if masked_view is not None and mask is not None:
+            student_local_global_patch, student_local_patch = self.forward(
+                local_view, is_teacher=False, return_patch_features=True
+            )
+            teacher_masked_global_patch, teacher_masked_patch = self.forward(
+                masked_view, is_teacher=True, return_patch_features=True
+            )
+            
+            # Convert mask to tensor if needed and handle shape
+            batch_size, seq_len, _ = student_local_patch.shape
+            
+            if isinstance(mask, np.ndarray):
+                mask = torch.from_numpy(mask).bool()
+            
+            # Ensure mask is on correct device
+            mask = mask.to(student_local_patch.device)
+            
+            # Handle mask shape: mask from dataset can be 2D (num_patches_freq, num_patches_time)
+            # or 3D (batch_size, num_patches_freq, num_patches_time) after batching
+            if mask.dim() == 3:
+                # 3D mask: (batch_size, num_patches_freq, num_patches_time)
+                # Flatten each sample's mask to 1D
+                mask_flat = mask.view(batch_size, -1)  # (batch_size, num_patches_freq * num_patches_time)
+            elif mask.dim() == 2:
+                # 2D mask: (num_patches_freq, num_patches_time) - single sample, repeat for batch
+                mask_flat = mask.flatten().unsqueeze(0).repeat(batch_size, 1)  # (batch_size, num_patches)
+            elif mask.dim() == 1:
+                # 1D mask: (num_patches,)
+                mask_flat = mask.unsqueeze(0).repeat(batch_size, 1)  # (batch_size, num_patches)
+            else:
+                # Already in correct shape (batch_size, seq_len)
+                mask_flat = mask
+            
+            # Truncate or pad to match sequence length
+            num_patches = mask_flat.size(1)
+            if num_patches > seq_len:
+                # Truncate to sequence length
+                mask_flat = mask_flat[:, :seq_len]
+            elif num_patches < seq_len:
+                # Pad with False (unmasked) to match sequence length
+                padding = torch.zeros(batch_size, seq_len - num_patches, 
+                                     dtype=torch.bool, device=mask_flat.device)
+                mask_flat = torch.cat([mask_flat, padding], dim=1)
+            
+            # Compute iBOT loss (patch-level)
+            ibot_loss_val = ibot_loss(
+                student_local_patch,
+                teacher_masked_patch,
+                mask_flat,
+                self.patch_center,
+                temperature=self.dino_temperature
+            )
+        
+        # KoLeo regularizer
+        koleo_loss_val = koleo_regularizer(student_local_global)
+        
+        # Combined loss
+        total_loss = dino_loss_val + self.ibot_weight * ibot_loss_val + self.koleo_weight * koleo_loss_val
+        
+        # Update centers
+        with torch.no_grad():
+            self.center = self.dino_center_momentum * self.center + (1 - self.dino_center_momentum) * teacher_global_global.mean(dim=0)
+            if masked_view is not None:
+                self.patch_center = self.dino_center_momentum * self.patch_center + (1 - self.dino_center_momentum) * teacher_masked_patch.mean(dim=[0, 1])
+        
+        self.training_step_outputs.append(total_loss.item())
+        
+        # Log losses
+        if batch_idx % self.trainer.log_every_n_steps == 0:
+            self.log('dino_loss', dino_loss_val, on_step=True, on_epoch=False, prog_bar=True)
+            self.log('ibot_loss', ibot_loss_val, on_step=True, on_epoch=False, prog_bar=True)
+            self.log('koleo_loss', koleo_loss_val, on_step=True, on_epoch=False, prog_bar=True)
+            self.log('total_loss', total_loss, on_step=True, on_epoch=False, prog_bar=True)
+        
+        return total_loss
+    
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        """Update teacher network via EMA after each batch."""
+        with torch.no_grad():
+            # Update teacher backbone
+            for student_param, teacher_param in zip(
+                self.student_backbone.parameters(), 
+                self.teacher_backbone.parameters()
+            ):
+                teacher_param.data = self.dino_momentum * teacher_param.data + (1 - self.dino_momentum) * student_param.data
+            
+            # Update teacher projections
+            for student_param, teacher_param in zip(
+                self.student_proj.parameters(), 
+                self.teacher_proj.parameters()
+            ):
+                teacher_param.data = self.dino_momentum * teacher_param.data + (1 - self.dino_momentum) * student_param.data
+            
+            for student_param, teacher_param in zip(
+                self.student_patch_proj.parameters(), 
+                self.teacher_patch_proj.parameters()
+            ):
+                teacher_param.data = self.dino_momentum * teacher_param.data + (1 - self.dino_momentum) * student_param.data
+    
+    def on_train_epoch_end(self):
+        """Log average training loss for the epoch."""
+        if len(self.training_step_outputs) > 0:
+            avg_loss = sum(self.training_step_outputs) / len(self.training_step_outputs)
+            self.log('total_loss_epoch', avg_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.training_step_outputs.clear()
+        else:
+            # No training steps executed (e.g., when resuming from checkpoint)
+            self.training_step_outputs.clear()
+    
+    def configure_optimizers(self):
+        """Configure optimizer for DINOv2 training."""
+        optimizer = optim.AdamW(
+            self.student_backbone.parameters(),
+            lr=self.hparams.lr,
+            weight_decay=self.hparams.weight_decay,
+            betas=(0.9, 0.999),
+            eps=1e-8
+        )
+        
+        # Also optimize projection heads
+        optimizer.add_param_group({
+            'params': self.student_proj.parameters(),
+            'lr': self.hparams.lr,
+            'weight_decay': self.hparams.weight_decay
+        })
+        
+        optimizer.add_param_group({
+            'params': self.student_patch_proj.parameters(),
             'lr': self.hparams.lr,
             'weight_decay': self.hparams.weight_decay
         })
@@ -945,9 +1486,13 @@ class SupervisedModel(pl.LightningModule):
     
     def on_train_epoch_end(self):
         """Compute and log training metrics."""
-        avg_loss = sum(self.training_step_outputs) / len(self.training_step_outputs)
-        self.log('train_loss_epoch', avg_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.training_step_outputs.clear()
+        if len(self.training_step_outputs) > 0:
+            avg_loss = sum(self.training_step_outputs) / len(self.training_step_outputs)
+            self.log('train_loss_epoch', avg_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.training_step_outputs.clear()
+        else:
+            # No training steps executed (e.g., when resuming from checkpoint)
+            self.training_step_outputs.clear()
         
         # Compute training metrics
         if len(self.train_preds) > 0:
@@ -1086,6 +1631,12 @@ parser.add_argument("--dino_proj_layers", type=int, default=3, help="Number of M
 parser.add_argument("--teacher_hidden_dim", type=int, default=None, help="Teacher hidden dim (if different from student)")
 parser.add_argument("--teacher_num_layers", type=int, default=None, help="Teacher num layers (if different from student)")
 
+# DINOv2 parameters
+parser.add_argument("--use_dinov2", action="store_true", help="Use DINOv2 (combines DINO + iBOT) instead of DINO")
+parser.add_argument("--ibot_weight", type=float, default=1.0, help="Weight for iBOT loss (patch-level)")
+parser.add_argument("--koleo_weight", type=float, default=0.04, help="Weight for KoLeo regularizer")
+parser.add_argument("--mask_ratio", type=float, default=0.6, help="Mask ratio for iBOT (fraction of patches to mask)")
+
 # Fine-tuning parameters
 parser.add_argument("--finetune_epochs", type=int, default=200, help="Epochs for supervised fine-tuning")
 parser.add_argument("--freeze_backbone", action="store_true", help="Freeze backbone during fine-tuning")
@@ -1110,6 +1661,7 @@ parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help="
 
 # Resume training
 parser.add_argument("--resume_from_dino", type=str, default=None, help="Path to DINO pretrained checkpoint to resume from")
+parser.add_argument("--resume_from_checkpoint", type=str, default=None, help="Path to supervised training checkpoint to resume from (for continuing fine-tuning)")
 parser.add_argument("--skip_dino_pretrain", action="store_true", help="Skip DINO pretraining and go directly to fine-tuning")
 parser.add_argument("--supervised_only", action="store_true", help="Train only with labeled data (supervised learning, no DINO pretraining)")
 parser.add_argument("--pretrained_backbone_path", type=str, default=None, help="Path to pretrained backbone checkpoint for supervised training")
@@ -1256,7 +1808,7 @@ if __name__ == '__main__':
         AUDIO_DIR, valid_clip_ids, valid_labels, indices=unlabeled_train_indices, 
         is_train=True, test_size=0.0, n_mels=args.n_mels, n_fft=args.n_fft, 
         hop_length=args.hop_length, use_dino_aug=True, augmentation=augmentation, 
-        return_label=False
+        return_label=False, use_dinov2=args.use_dinov2, mask_ratio=args.mask_ratio
     )
     
     # Labeled dataset (for fine-tuning) - no augmentation, with labels
@@ -1336,11 +1888,39 @@ if __name__ == '__main__':
     
     if not args.skip_dino_pretrain:
         print(f"\n{'='*60}")
-        print(f"Phase 1: DINO Pretraining")
+        if args.use_dinov2:
+            print(f"Phase 1: DINOv2 Pretraining (DINO + iBOT)")
+        else:
+            print(f"Phase 1: DINO Pretraining")
         print(f"{'='*60}")
         
-        # Create DINO model
-        dino_model = DINOModel(
+        # Create DINO or DINOv2 model
+        if args.use_dinov2:
+            dino_model = DINOv2Model(
+                input_dim=input_dim,
+                hidden_dim=args.hidden_dim,
+                num_layers=args.num_layers,
+                dropout=args.dropout,
+                lr=args.lr,
+                weight_decay=args.weight_decay,
+                conv_channels=args.conv_channels,
+                conv_kernel_size=args.conv_kernel_size,
+                conv_stride=args.conv_stride,
+                bptt_length=args.bptt_length,
+                use_bidirectional=args.use_bidirectional,
+                teacher_hidden_dim=args.teacher_hidden_dim,
+                teacher_num_layers=args.teacher_num_layers,
+                dino_momentum=args.dino_momentum,
+                dino_temperature=args.dino_temperature,
+                dino_center_momentum=args.dino_center_momentum,
+                dino_proj_dim=args.dino_proj_dim,
+                dino_proj_layers=args.dino_proj_layers,
+                ibot_weight=args.ibot_weight,
+                koleo_weight=args.koleo_weight,
+                mask_ratio=args.mask_ratio
+            )
+        else:
+            dino_model = DINOModel(
             input_dim=input_dim,
             hidden_dim=args.hidden_dim,
             num_layers=args.num_layers,
@@ -1400,10 +1980,11 @@ if __name__ == '__main__':
             **trainer_config
         )
         
-        # Train DINO model
-        print(f"🔹 Starting DINO pretraining for {args.dino_pretrain_epochs} epochs...")
+        # Train DINO/DINOv2 model
+        model_name = "DINOv2" if args.use_dinov2 else "DINO"
+        print(f"🔹 Starting {model_name} pretraining for {args.dino_pretrain_epochs} epochs...")
         dino_trainer.fit(dino_model, unlabeled_loader)
-        print("✅ DINO pretraining complete!")
+        print(f"✅ {model_name} pretraining complete!")
         
         # Extract pretrained backbone from student network
         pretrained_backbone = dino_model.student_backbone
@@ -1524,8 +2105,13 @@ if __name__ == '__main__':
     )
     
     # Train supervised model
-    print(f"🔹 Starting supervised fine-tuning for {args.finetune_epochs} epochs...")
-    supervised_trainer.fit(supervised_model, labeled_loader, val_loader)
+    ckpt_path = args.resume_from_checkpoint if args.resume_from_checkpoint else None
+    if ckpt_path:
+        print(f"🔹 Resuming supervised fine-tuning from checkpoint: {ckpt_path}")
+        print(f"🔹 Continuing for {args.finetune_epochs} more epochs...")
+    else:
+        print(f"🔹 Starting supervised fine-tuning for {args.finetune_epochs} epochs...")
+    supervised_trainer.fit(supervised_model, labeled_loader, val_loader, ckpt_path=ckpt_path)
     print("✅ Supervised fine-tuning complete!")
     
     # ========================
