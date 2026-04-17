@@ -1,0 +1,19 @@
+bptt_length: 60
+conv_channels:
+- 64
+- 128
+- 256
+- 512
+conv_kernel_size: 3
+conv_stride: 1
+dropout: 0.1
+freeze_backbone: false
+hidden_dim: 256
+init_weights: xavier
+input_dim: 128
+lr: 0.0001
+num_classes: 199
+num_layers: 2
+pretrained_backbone: null
+use_bidirectional: false
+weight_decay: 1.0e-05

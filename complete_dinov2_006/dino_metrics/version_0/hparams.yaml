@@ -1,0 +1,24 @@
+bptt_length: 60
+conv_channels:
+- 64
+- 128
+- 256
+conv_kernel_size: 3
+conv_stride: 1
+dino_center_momentum: 0.9
+dino_momentum: 0.996
+dino_proj_dim: 256
+dino_proj_layers: 3
+dino_temperature: 0.1
+dropout: 0.1
+hidden_dim: 256
+ibot_weight: 0.5
+input_dim: 128
+koleo_weight: 0.04
+lr: 0.0001
+mask_ratio: 0.6
+num_layers: 2
+teacher_hidden_dim: null
+teacher_num_layers: null
+use_bidirectional: false
+weight_decay: 1.0e-05

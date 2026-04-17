@@ -5,6 +5,16 @@
 # - BCE loss only
 # - DINO self-supervised pretraining on unlabeled data
 # - Supervised fine-tuning on labeled data
+#
+# Training stages (can be combined):
+# 1. Load pretrained DINO model (optional, via --pretrained_dino_path): 
+#    Initialize from a DINO/DINOv2 checkpoint (e.g., from another experiment or compatible model)
+#    NOTE: Standard DINOv2 models (ViT-based) are NOT compatible with CRNN architecture.
+#    Use this option with models trained with this same script or compatible CRNN-based models.
+# 2. DINO fine-tuning on unlabeled audio data (via --dino_pretrain_epochs):
+#    Continue self-supervised learning on your unlabeled audio data
+# 3. Supervised fine-tuning for classification (via --finetune_epochs):
+#    Fine-tune the pretrained backbone for your classification task
 
 # python run_experiment_dino_lightning.py \
 #   --save_dir "complete_dino_001" \
@@ -172,6 +182,145 @@
 #   --dataset_type "complete" \
 #   --bptt_length 60 \
 #   --labeled_ratio 0.1
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_003" \
+#   --use_dinov2 \
+#   --dino_pretrain_epochs 50 \
+#   --finetune_epochs 500 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 0.1
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_004" \
+#   --use_dinov2 \
+#   --dino_pretrain_epochs 50 \
+#   --finetune_epochs 500 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 512 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 0.1
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_005" \
+#   --use_dinov2 \
+#   --dino_pretrain_epochs 50 \
+#   --finetune_epochs 500 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 512 1024 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 0.1
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_006" \
+#   --use_dinov2 \
+#   --dino_pretrain_epochs 100 \
+#   --dino_temperature 0.10 \
+#   --finetune_epochs 200 \
+#   --ibot_weight 0.5 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 0.1
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_007" \
+#   --use_dinov2 \
+#   --dino_pretrain_epochs 50 \
+#   --finetune_epochs 200 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 512 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 1.0
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_007" \
+#   --use_dinov2 \
+#   --skip_dino_pretrain \
+#   --resume_from_checkpoint "complete_dinov2_007/best-checkpoint.ckpt" \
+#   --dino_pretrain_epochs 50 \
+#   --finetune_epochs 200 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 512 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 1.0
+
+# python run_experiment_dino_lightning.py \
+#   --save_dir "complete_dinov2_008" \
+#   --use_dinov2 \
+#   --skip_dino_pretrain \
+#   --resume_from_checkpoint "complete_dinov2_007/best-checkpoint.ckpt" \
+#   --dino_pretrain_epochs 50 \
+#   --finetune_epochs 500 \
+#   --ibot_weight 1.0 \
+#   --koleo_weight 0.04 \
+#   --mask_ratio 0.6 \
+#   --use_gpu \
+#   --test_size 0.1 \
+#   --dropout 0.1 \
+#   --num_workers 4 \
+#   --conv_channels 64 128 256 512 \
+#   --conv_kernel_size 3 \
+#   --conv_stride 1 \
+#   --dataset_type "complete" \
+#   --bptt_length 60 \
+#   --labeled_ratio 1.0
+
 
 import os
 import argparse
@@ -1660,11 +1809,12 @@ parser.add_argument("--early_stopping_patience", type=int, default=100, help="Pa
 parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help="Number of steps to accumulate gradients")
 
 # Resume training
-parser.add_argument("--resume_from_dino", type=str, default=None, help="Path to DINO pretrained checkpoint to resume from")
+parser.add_argument("--resume_from_dino", type=str, default=None, help="Path to DINO pretrained checkpoint to resume from (resumes training with optimizer state, epoch count, etc.)")
 parser.add_argument("--resume_from_checkpoint", type=str, default=None, help="Path to supervised training checkpoint to resume from (for continuing fine-tuning)")
 parser.add_argument("--skip_dino_pretrain", action="store_true", help="Skip DINO pretraining and go directly to fine-tuning")
 parser.add_argument("--supervised_only", action="store_true", help="Train only with labeled data (supervised learning, no DINO pretraining)")
 parser.add_argument("--pretrained_backbone_path", type=str, default=None, help="Path to pretrained backbone checkpoint for supervised training")
+parser.add_argument("--pretrained_dino_path", type=str, default=None, help="Path to pretrained DINO/DINOv2 checkpoint to initialize from (for transfer learning: load pretrained model weights, then fine-tune on unlabeled data, then fine-tune for classification). NOTE: Standard DINOv2 ViT models are NOT compatible - use models trained with this script or compatible CRNN-based models.")
 parser.add_argument("--init_weights", type=str, default="xavier", choices=["xavier", "normal", "random"], 
                    help="Weight initialization method for new models: 'xavier', 'normal', or 'random'")
 
@@ -1803,9 +1953,10 @@ if __name__ == '__main__':
     # ========================
     # Create Datasets
     # ========================
-    # Unlabeled dataset (for DINO pretraining) - with augmentation, no labels
-    unlabeled_dataset = MELSpectrogramDataset(
-        AUDIO_DIR, valid_clip_ids, valid_labels, indices=unlabeled_train_indices, 
+    # DINO pretraining dataset: use ALL training data (labeled + unlabeled).
+    # DINO is self-supervised so labels are not used; we only need spectrograms for two-view augmentation.
+    dino_pretrain_dataset = MELSpectrogramDataset(
+        AUDIO_DIR, valid_clip_ids, valid_labels, indices=train_indices, 
         is_train=True, test_size=0.0, n_mels=args.n_mels, n_fft=args.n_fft, 
         hop_length=args.hop_length, use_dino_aug=True, augmentation=augmentation, 
         return_label=False, use_dinov2=args.use_dinov2, mask_ratio=args.mask_ratio
@@ -1827,15 +1978,15 @@ if __name__ == '__main__':
         return_label=True
     )
     
-    print(f"🔹 Unlabeled dataset size: {len(unlabeled_dataset)}")
+    print(f"🔹 DINO pretraining dataset size: {len(dino_pretrain_dataset)} (all training data)")
     print(f"🔹 Labeled dataset size: {len(labeled_dataset)}")
     print(f"🔹 Validation dataset size: {len(val_dataset)}")
     
     # ========================
     # Create DataLoaders
     # ========================
-    unlabeled_loader = DataLoader(
-        unlabeled_dataset, 
+    dino_pretrain_loader = DataLoader(
+        dino_pretrain_dataset, 
         batch_size=args.batch_size, 
         shuffle=True,
         num_workers=args.num_workers,
@@ -1941,10 +2092,90 @@ if __name__ == '__main__':
             dino_proj_layers=args.dino_proj_layers
         )
         
-        # Resume from checkpoint if specified
+        # Load pretrained DINO model if specified (for transfer learning)
+        if args.pretrained_dino_path is not None:
+            print(f"\n🔹 Loading pretrained DINO model from: {args.pretrained_dino_path}")
+            if not os.path.exists(args.pretrained_dino_path):
+                raise FileNotFoundError(f"Pretrained DINO checkpoint not found at: {args.pretrained_dino_path}")
+            
+            try:
+                # Load the pretrained checkpoint
+                pretrained_checkpoint = torch.load(args.pretrained_dino_path, map_location=device)
+                
+                # Extract state dict
+                if isinstance(pretrained_checkpoint, dict) and 'state_dict' in pretrained_checkpoint:
+                    pretrained_state_dict = pretrained_checkpoint['state_dict']
+                else:
+                    # Assume it's a state dict directly or a Lightning checkpoint
+                    if isinstance(pretrained_checkpoint, dict):
+                        pretrained_state_dict = pretrained_checkpoint
+                    else:
+                        # Try to load as Lightning checkpoint
+                        try:
+                            if args.use_dinov2:
+                                pretrained_model = DINOv2Model.load_from_checkpoint(args.pretrained_dino_path, strict=False)
+                            else:
+                                pretrained_model = DINOModel.load_from_checkpoint(args.pretrained_dino_path, strict=False)
+                            pretrained_state_dict = pretrained_model.state_dict()
+                            del pretrained_model  # Free memory
+                        except Exception:
+                            pretrained_state_dict = pretrained_checkpoint.state_dict() if hasattr(pretrained_checkpoint, 'state_dict') else pretrained_checkpoint
+                
+                # Load weights into current model (with strict=False to handle architecture differences)
+                model_state_dict = dino_model.state_dict()
+                
+                # Match keys and load compatible weights
+                matched_keys = []
+                skipped_keys = []
+                for key, value in pretrained_state_dict.items():
+                    if key in model_state_dict:
+                        if model_state_dict[key].shape == value.shape:
+                            model_state_dict[key] = value
+                            matched_keys.append(key)
+                        else:
+                            skipped_keys.append(f"{key} (shape mismatch: {model_state_dict[key].shape} vs {value.shape})")
+                    else:
+                        skipped_keys.append(f"{key} (not in model)")
+                
+                dino_model.load_state_dict(model_state_dict, strict=False)
+                
+                print(f"✅ Successfully loaded pretrained DINO model")
+                print(f"   Matched {len(matched_keys)} parameters")
+                if skipped_keys:
+                    print(f"   Skipped {len(skipped_keys)} parameters (architecture mismatch)")
+                    if len(skipped_keys) <= 10:
+                        for key in skipped_keys:
+                            print(f"     - {key}")
+                    else:
+                        print(f"     (showing first 10 of {len(skipped_keys)} skipped keys)")
+                        for key in skipped_keys[:10]:
+                            print(f"     - {key}")
+                
+                # If the pretrained model has a center buffer, try to initialize it
+                if 'center' in pretrained_state_dict:
+                    if hasattr(dino_model, 'center'):
+                        dino_model.center.data = pretrained_state_dict['center'].to(device)
+                        print(f"   Initialized center buffer from pretrained model")
+                
+                # For DINOv2, also try to load patch_center
+                if args.use_dinov2 and 'patch_center' in pretrained_state_dict:
+                    if hasattr(dino_model, 'patch_center'):
+                        dino_model.patch_center.data = pretrained_state_dict['patch_center'].to(device)
+                        print(f"   Initialized patch_center buffer from pretrained model")
+                        
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to load pretrained DINO model: {str(e)}")
+                print(f"🔹 Continuing with randomly initialized model instead")
+                import traceback
+                traceback.print_exc()
+        
+        # Resume from checkpoint if specified (takes precedence over pretrained_dino_path)
         if args.resume_from_dino is not None:
             print(f"🔹 Loading DINO checkpoint from: {args.resume_from_dino}")
-            dino_model = DINOModel.load_from_checkpoint(args.resume_from_dino)
+            if args.use_dinov2:
+                dino_model = DINOv2Model.load_from_checkpoint(args.resume_from_dino)
+            else:
+                dino_model = DINOModel.load_from_checkpoint(args.resume_from_dino)
         
         # Create checkpoint callback
         dino_checkpoint_callback = ModelCheckpoint(
@@ -1983,7 +2214,7 @@ if __name__ == '__main__':
         # Train DINO/DINOv2 model
         model_name = "DINOv2" if args.use_dinov2 else "DINO"
         print(f"🔹 Starting {model_name} pretraining for {args.dino_pretrain_epochs} epochs...")
-        dino_trainer.fit(dino_model, unlabeled_loader)
+        dino_trainer.fit(dino_model, dino_pretrain_loader)
         print(f"✅ {model_name} pretraining complete!")
         
         # Extract pretrained backbone from student network

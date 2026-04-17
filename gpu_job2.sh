@@ -22,26 +22,22 @@ set -e  # Exit on any error
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate audio-classification
 
-python run_experiment_dino_lightning.py \
-  --save_dir "complete_dino_003" \
-  --freeze_backbone \
-  --dino_pretrain_epochs 100 \
-  --finetune_epochs 500 \
-  --eval_interval 10 \
-  --log_interval 10 \
-  --lr 1e-4 \
-  --weight_decay 1e-5 \
-  --gradient_clip_val 10.0 \
-  --batch_size 100 \
-  --use_gpu \
-  --test_size 0.1 \
-  --dropout 0.1 \
-  --num_workers 4 \
-  --conv_channels 64 128 256 \
-  --conv_kernel_size 3 \
-  --conv_stride 1 \
+python run_experiment_asit_lightning.py \
+  --save_dir "asit_supervised_003" \
+  --supervised_only \
+  --finetune_epochs 700 \
+  --vit_model small \
+  --labeled_ratio 0.1 \
   --dataset_type "complete" \
-  --bptt_length 60 \
-  --labeled_ratio 0.1
+  --batch_size 32 \
+  --num_workers 4 \
+  --lr 1e-3 \
+  --weight_decay 1e-4 \
+  --dropout 0.1 \
+  --eval_interval 1 \
+  --use_early_stopping \
+  --early_stopping_patience 60 \
+  --gradient_accumulation_steps 2 \
+  --use_gpu
 
 conda deactivate
