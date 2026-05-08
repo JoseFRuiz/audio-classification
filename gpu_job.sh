@@ -23,15 +23,15 @@ source ~/anaconda3/etc/profile.d/conda.sh
 conda activate audio-classification
 
 python run_experiment_asit_lightning.py \
-  --save_dir "asit_supervised_002" \
+  --save_dir "asit_supervised_008" \
   --supervised_only \
   --finetune_epochs 700 \
-  --vit_model small \
+  --vit_model base \
   --labeled_ratio 0.1 \
   --dataset_type "complete" \
   --batch_size 32 \
   --num_workers 4 \
-  --lr 3e-5 \
+  --lr 1e-4 \
   --weight_decay 1e-4 \
   --dropout 0.1 \
   --eval_interval 1 \
