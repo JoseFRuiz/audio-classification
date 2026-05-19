@@ -152,8 +152,6 @@
 #   --weight_decay 1e-4 \
 #   --dropout 0.1 \
 #   --eval_interval 1 \
-#   --use_early_stopping \
-#   --early_stopping_patience 60 \
 #   --gradient_accumulation_steps 2 \
 #   --use_gpu
 
@@ -170,11 +168,40 @@
 #   --weight_decay 1e-4 \
 #   --dropout 0.1 \
 #   --eval_interval 1 \
-#   --use_early_stopping \
-#   --early_stopping_patience 60 \
 #   --gradient_accumulation_steps 2 \
 #   --use_gpu
-#   # --early_stopping_metric val_map  ← now the default
+
+# python run_experiment_asit_lightning.py \
+#   --save_dir "asit_supervised_009" \
+#   --supervised_only \
+#   --finetune_epochs 700 \
+#   --vit_model base \
+#   --labeled_ratio 0.1 \
+#   --dataset_type "complete" \
+#   --batch_size 32 \
+#   --num_workers 4 \
+#   --lr 1e-4 \
+#   --weight_decay 1e-4 \
+#   --dropout 0.1 \
+#   --eval_interval 1 \
+#   --gradient_accumulation_steps 2 \
+#   --use_gpu
+
+# python run_experiment_asit_lightning.py \
+#   --save_dir "asit_supervised_010" \
+#   --asit_pretrain_epochs 100 \
+#   --finetune_epochs 500 \
+#   --vit_model base \
+#   --labeled_ratio 0.1 \
+#   --dataset_type "complete" \
+#   --batch_size 32 \
+#   --num_workers 4 \
+#   --lr 1e-4 \
+#   --weight_decay 1e-4 \
+#   --dropout 0.1 \
+#   --eval_interval 1 \
+#   --gradient_accumulation_steps 2 \
+#   --use_gpu
 
 
 # I haven't ran the ones below yet, but these are the commands I plan to run for the experiments in the paper. You can run them too if you want to reproduce the results or test the code.

@@ -1,0 +1,10 @@
+dropout: 0.1
+freeze_backbone: false
+lr: 0.0001
+n_mels: 128
+num_classes: 199
+patch_size_freq: 16
+patch_size_time: 16
+time_frames: 313
+vit_model: base
+weight_decay: 0.0001
